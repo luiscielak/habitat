@@ -7,71 +7,118 @@
 
 import SwiftUI
 
-/// Main view displaying the daily habit tracker
+/// Main container view with custom tab bar
 ///
-/// This view owns the state (habits array) and manages the overall layout.
-/// It demonstrates several key SwiftUI concepts:
-/// - @State for managing mutable data
-/// - Computed properties for derived values
-/// - List with bindings for interactive rows
-/// - Materials for glass effect
+/// This view demonstrates:
+/// - State hoisting (selectedDate owned here, passed to children)
+/// - Custom tab bar design
+/// - View switching based on state
+/// - Closures for child-to-parent communication
 struct ContentView: View {
-    /// The array of habits to track
-    ///
-    /// @State tells SwiftUI: "When this changes, update the UI"
-    /// private means only this view can access it
-    /// SwiftUI automatically saves and restores @State during view updates
-    ///
-    /// Now using the simplified initializer that:
-    /// - Auto-generates UUID for id
-    /// - Defaults isCompleted to false
-    /// - Auto-sets default times for time-tracked habits (Breakfast, Lunch, etc.)
-    @State private var habits: [Habit] = [
-        Habit(title: "Weighed myself"),
-        Habit(title: "Breakfast"),
-        Habit(title: "Lunch"),
-        Habit(title: "Pre-workout meal"),
-        Habit(title: "Dinner"),
-        Habit(title: "Kitchen closed at 10 PM"),
-        Habit(title: "Tracked all meals"),
-        Habit(title: "Completed workout"),
-        Habit(title: "Slept in bed, not couch")
-    ]
+    /// Currently selected date (shared by both Daily and Weekly views)
+    @State private var selectedDate: Date = Date()
 
-    /// How many habits have been completed
-    ///
-    /// This is a computed property - it calculates the value on-demand
-    /// .filter creates a new array with only completed habits
-    /// .count returns how many items are in that array
-    /// SwiftUI automatically recalculates this when habits changes
-    var completedCount: Int {
-        habits.filter { $0.isCompleted }.count
-    }
+    /// Currently selected tab
+    @State private var selectedTab: ViewTab = .daily
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Date display at the top
-            DateHeaderView(date: Date())
-                .padding()
-
-            // Completion counter
-            Text("\(completedCount)/\(habits.count) completed")
-                .font(.headline)
-                .foregroundStyle(.secondary) // Lighter color, less prominent
-                .padding(.bottom)
-
-            // List of habits
-            // $habits creates bindings for the entire array
-            // { $habit in ... } provides a binding to each individual habit
-            // This allows HabitRowView to modify the habit directly
-            List($habits) { $habit in
-                HabitRowView(habit: $habit)
+        ZStack(alignment: .bottom) {
+            // Main content area
+            Group {
+                switch selectedTab {
+                case .daily:
+                    DailyView(selectedDate: $selectedDate)
+                        .id("daily")
+                case .weekly:
+                    WeeklyView(
+                        selectedDate: $selectedDate,
+                        onDateTapped: { date in
+                            selectedDate = date
+                            selectedTab = .daily
+                        }
+                    )
+                    .id("weekly")
+                }
             }
-            .listStyle(.insetGrouped) // iOS native grouped style (like Settings app)
-            .scrollContentBackground(.hidden) // Hide default background for glass effect
+            .background(.ultraThinMaterial)
+
+            // Custom tab bar at bottom
+            CustomTabBar(selectedTab: $selectedTab)
         }
-        .background(.ultraThinMaterial) // Glass morphism effect - blurs content behind
-        .preferredColorScheme(.dark) // Force dark mode for now
+        .preferredColorScheme(.dark)
+    }
+}
+
+/// Tab options
+enum ViewTab: String, CaseIterable {
+    case daily = "Daily"
+    case weekly = "Weekly"
+
+    var icon: String {
+        switch self {
+        case .daily: return "calendar"
+        case .weekly: return "calendar.badge.clock"
+        }
+    }
+}
+
+/// Custom tab bar with glass effect
+///
+/// This component demonstrates:
+/// - Custom tab bar design (not using native TabView)
+/// - Glass morphism styling
+/// - SF Symbols for icons
+/// - Active/inactive state styling
+struct CustomTabBar: View {
+    @Binding var selectedTab: ViewTab
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(ViewTab.allCases, id: \.self) { tab in
+                TabButton(
+                    title: tab.rawValue,
+                    icon: tab.icon,
+                    isSelected: selectedTab == tab
+                ) {
+                    selectedTab = tab
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .shadow(color: .black.opacity(0.2), radius: 10, y: 5)
+    }
+}
+
+/// Individual tab button
+struct TabButton: View {
+    let title: String
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 2) {
+                Image(systemName: icon)
+                    .font(.body)
+                Text(title)
+                    .font(.caption2)
+            }
+            .foregroundStyle(isSelected ? .primary : .secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 4)
+            .background(
+                isSelected ?
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(.ultraThinMaterial) :
+                    nil
+            )
+        }
     }
 }
 

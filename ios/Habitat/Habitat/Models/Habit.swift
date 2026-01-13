@@ -14,7 +14,14 @@ import Foundation
 /// - A display title (what the user sees)
 /// - A completion status (checked or unchecked)
 /// - Optional time tracking (only for certain habits like meals and sleep)
-struct Habit: Identifiable {
+///
+/// Codable conformance enables:
+/// - Automatic JSON encoding (Habit → Data)
+/// - Automatic JSON decoding (Data → Habit)
+/// - Saving to UserDefaults for persistence
+/// - Swift compiler generates all encoding/decoding code automatically
+/// - Computed properties (needsTimeTracking) are automatically excluded
+struct Habit: Identifiable, Codable, Equatable {
     /// Unique identifier for this habit
     /// SwiftUI uses this to efficiently update only changed items in a List
     let id: UUID
