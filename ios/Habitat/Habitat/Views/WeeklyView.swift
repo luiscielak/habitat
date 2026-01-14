@@ -3,55 +3,47 @@
 //  Habitat
 //
 //  Created by Claude on 2026-01-12.
+//  Transformed to coach-style view on 2026-01-13.
 //
 
 import SwiftUI
 
-/// Weekly grid view showing habit completion across 7 days
+/// Weekly grid view showing habit completion with heat maps and streaks
 ///
-/// This view demonstrates:
-/// - LazyVGrid for 2D grid layouts
-/// - Loading multiple days of data
-/// - Read-only data display (no editing in grid)
-/// - Tap gestures to navigate to daily view
-/// - Dynamic content based on storage
+/// Coach-style features:
+/// - Heat map indicators (gradient colors based on consistency)
+/// - Streak badges showing current streaks
+/// - Weekly summary card (strongest/fragile habits)
+/// - Interactive toggles
 struct WeeklyView: View {
     /// Currently selected date (determines which week to show)
     @Binding var selectedDate: Date
 
     /// Callback to switch to daily view for a specific date
-    ///
-    /// When user taps a day in the grid, this closure:
-    /// 1. Updates selectedDate to the tapped date
-    /// 2. Switches tab to .daily
     var onDateTapped: (Date) -> Void
 
-    /// Storage manager
+    /// Storage and services
     private let storage = HabitStorageManager.shared
-
-    /// Force refresh trigger
-    @State private var refreshID = UUID()
+    private let analytics = HabitAnalyticsService.shared
 
     /// Currently editing habit for time picker
     @State private var editingHabit: (title: String, date: Date, currentTime: Date)?
+
+    /// Streak data cache
+    @State private var streakCache: [String: StreakData] = [:]
+
+    /// Completion cache for efficient updates
+    @State private var completionCache: [String: Set<String>] = [:]
 
     /// Dates for the week containing selectedDate (Sunday-Saturday)
     private var weekDates: [Date] {
         selectedDate.weekDates()
     }
 
-    /// All habit titles in consistent order
-    private let habitTitles = [
-        "Weighed myself",
-        "Breakfast",
-        "Lunch",
-        "Pre-workout meal",
-        "Dinner",
-        "Kitchen closed at 10 PM",
-        "Tracked all meals",
-        "Completed workout",
-        "Slept in bed, not couch"
-    ]
+    /// All habit titles from definitions
+    private var habitTitles: [String] {
+        HabitDefinitions.allTitles
+    }
 
     var body: some View {
         ScrollView {
@@ -84,33 +76,59 @@ struct WeeklyView: View {
                 .padding(.horizontal)
                 .padding(.top)
 
-                // Day names header
+                // Weekly Summary Card
+                WeeklySummaryCard(
+                    weekDates: weekDates,
+                    strongestHabit: analytics.getStrongestHabit(in: weekDates),
+                    fragileHabit: analytics.getMostFragileHabit(in: weekDates)
+                )
+                .padding(.horizontal)
+                .padding(.vertical, 12)
+
+                // Day names header with today highlight
                 HStack(spacing: 0) {
                     ForEach(Array(weekDates.enumerated()), id: \.offset) { index, date in
-                        Text(dayName(for: date))
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity)
+                        VStack(spacing: 4) {
+                            Text(dayName(for: date))
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(isToday(date) ? .white : .secondary)
+
+                            // Today indicator dot
+                            if isToday(date) {
+                                Circle()
+                                    .fill(.white)
+                                    .frame(width: 4, height: 4)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 8)
 
-                // Habits list with full-width names and indicators below
-                VStack(spacing: 8) {
+                // Habits list with heat maps and streaks
+                VStack(spacing: 12) {
                     ForEach(habitTitles, id: \.self) { habitTitle in
-                        VStack(alignment: .leading, spacing: 4) {
-                            // Habit name (full width)
-                            Text(habitTitle)
-                                .font(.subheadline.weight(.medium))
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                        VStack(alignment: .leading, spacing: 6) {
+                            // Habit name with streak badge
+                            HStack {
+                                Text(habitTitle)
+                                    .font(.subheadline.weight(.medium))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                            // Completion indicators spread across width
+                                // Streak badge
+                                if let streakData = streakCache[habitTitle] {
+                                    StreakBadge(streakData: streakData)
+                                }
+                            }
+
+                            // Heat map indicators across width
                             HStack(spacing: 4) {
                                 ForEach(Array(weekDates.enumerated()), id: \.offset) { index, date in
-                                    CompletionIndicator(
+                                    HeatMapIndicator(
                                         isCompleted: isHabitCompleted(habitTitle, on: date),
                                         date: date,
+                                        intensity: calculateIntensity(for: habitTitle, on: date),
                                         onTap: {
                                             toggleHabit(habitTitle, on: date)
                                         }
@@ -120,22 +138,24 @@ struct WeeklyView: View {
                                 }
                             }
                         }
-                        .padding(.vertical, 2)
+                        .padding(.vertical, 4)
                     }
                 }
                 .padding(.horizontal)
-                .padding(.top, 8)
+                .padding(.bottom, 100) // Extra space for tab bar
             }
             .padding(.vertical)
         }
-        .id(refreshID)
+        .scrollContentBackground(.hidden)
         .task {
             // Refresh the view when it appears to show latest data
-            refreshID = UUID()
+            loadStreakData()
+            loadCompletionCache()
         }
         .onChange(of: selectedDate) { oldDate, newDate in
             // Refresh when navigating to a different week
-            refreshID = UUID()
+            loadStreakData()
+            loadCompletionCache()
         }
         .sheet(item: Binding(
             get: { editingHabit.map { EditingHabitItem(title: $0.title, date: $0.date, currentTime: $0.currentTime) } },
@@ -153,6 +173,35 @@ struct WeeklyView: View {
 
     // MARK: - Helper Methods
 
+    /// Load streak data for all habits
+    private func loadStreakData() {
+        streakCache = analytics.calculateAllStreaks(for: weekDates.last ?? Date())
+    }
+
+    /// Load completion status for all habits across the week
+    private func loadCompletionCache() {
+        var cache: [String: Set<String>] = [:]
+
+        for date in weekDates {
+            let dateKey = storage.dateKey(from: date)
+            if let habits = storage.loadHabits(for: date) {
+                for habit in habits where habit.isCompleted {
+                    if cache[habit.title] == nil {
+                        cache[habit.title] = []
+                    }
+                    cache[habit.title]?.insert(dateKey)
+                }
+            }
+        }
+
+        completionCache = cache
+    }
+
+    /// Calculate heat map intensity for a habit on a specific date
+    private func calculateIntensity(for habitTitle: String, on date: Date) -> Double {
+        return analytics.calculateHeatMapIntensity(for: habitTitle, on: date)
+    }
+
     /// Toggle habit completion status
     private func toggleHabit(_ habitTitle: String, on date: Date) {
         // Load habits for the date (or create defaults)
@@ -166,9 +215,10 @@ struct WeeklyView: View {
 
         // Toggle completion
         habits[index].isCompleted.toggle()
+        let isNowCompleted = habits[index].isCompleted
 
         // If completing a time-tracked habit, show time picker
-        if habits[index].isCompleted && habits[index].needsTimeTracking {
+        if isNowCompleted && habits[index].needsTimeTracking {
             if let currentTime = habits[index].trackedTime {
                 editingHabit = (habitTitle, date, currentTime)
             }
@@ -176,10 +226,21 @@ struct WeeklyView: View {
 
         // Save immediately
         storage.saveHabits(habits, for: date)
-        print("💾 Toggled \(habitTitle) on \(storage.dateKey(from: date)): \(habits[index].isCompleted)")
+        print("💾 Toggled \(habitTitle) on \(storage.dateKey(from: date)): \(isNowCompleted)")
 
-        // Refresh view
-        refreshID = UUID()
+        // Update completion cache
+        let dateKey = storage.dateKey(from: date)
+        if isNowCompleted {
+            if completionCache[habitTitle] == nil {
+                completionCache[habitTitle] = []
+            }
+            completionCache[habitTitle]?.insert(dateKey)
+        } else {
+            completionCache[habitTitle]?.remove(dateKey)
+        }
+
+        // Reload streaks (this is async and won't cause scroll reset)
+        loadStreakData()
     }
 
     /// Save habit time from time picker
@@ -195,22 +256,12 @@ struct WeeklyView: View {
         storage.saveCustomTime(for: habitTitle, time: time)
 
         print("✅ Saved time for \(habitTitle): \(time)")
-
-        // Refresh view
-        refreshID = UUID()
     }
 
     /// Create default habits array (helper for toggling)
     private func createDefaultHabitsArray() -> [Habit] {
         let customTimes = storage.loadAllCustomTimes()
-
-        return habitTitles.map { title in
-            var habit = Habit(title: title)
-            if let customTime = customTimes[title] {
-                habit.trackedTime = customTime
-            }
-            return habit
-        }
+        return HabitDefinitions.createDefaultHabits(customTimes: customTimes)
     }
 
     /// Get short day name (Sun, Mon, etc.)
@@ -234,24 +285,14 @@ struct WeeklyView: View {
     }
 
     /// Check if a specific habit was completed on a specific date
-    ///
-    /// Loads habits for the date and checks completion status
-    /// Returns false if no data exists for that date
     private func isHabitCompleted(_ habitTitle: String, on date: Date) -> Bool {
-        guard let habits = storage.loadHabits(for: date) else {
-            let dateKey = storage.dateKey(from: date)
-            print("⚠️ No habits found for \(dateKey)")
-            return false
-        }
+        let dateKey = storage.dateKey(from: date)
+        return completionCache[habitTitle]?.contains(dateKey) ?? false
+    }
 
-        let isCompleted = habits.first(where: { $0.title == habitTitle })?.isCompleted ?? false
-
-        if isCompleted {
-            let dateKey = storage.dateKey(from: date)
-            print("✅ \(habitTitle) completed on \(dateKey)")
-        }
-
-        return isCompleted
+    /// Check if a date is today
+    private func isToday(_ date: Date) -> Bool {
+        Calendar.current.isDate(date, inSameDayAs: Date())
     }
 }
 
@@ -261,37 +302,6 @@ struct EditingHabitItem: Identifiable {
     let title: String
     let date: Date
     let currentTime: Date
-}
-
-/// Visual indicator for habit completion status
-///
-/// Shows checkmark (✓) if completed, dot (·) if not
-struct CompletionIndicator: View {
-    let isCompleted: Bool
-    let date: Date
-    let onTap: () -> Void
-
-    /// Whether this date is today
-    private var isToday: Bool {
-        Calendar.current.isDate(date, inSameDayAs: Date())
-    }
-
-    var body: some View {
-        Button(action: onTap) {
-            Text(isCompleted ? "✓" : "·")
-                .font(.title3)
-                .foregroundStyle(isCompleted ? .green : .secondary)
-                .frame(height: 32)
-                .frame(maxWidth: .infinity)
-                .background(
-                    isCompleted
-                        ? (isToday ? Color.green.opacity(0.15) : Color.clear)
-                        : Color.white.opacity(0.05)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-        }
-        .buttonStyle(.plain)
-    }
 }
 
 // MARK: - Preview

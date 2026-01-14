@@ -21,6 +21,11 @@ struct ContentView: View {
     /// Currently selected tab
     @State private var selectedTab: ViewTab = .daily
 
+    /// Show animation debug panel
+    @State private var showDebugPanel = false
+
+    @ObservedObject private var animConfig = AnimationConfig.shared
+
     var body: some View {
         ZStack(alignment: .bottom) {
             // Main content area
@@ -29,23 +34,61 @@ struct ContentView: View {
                 case .daily:
                     DailyView(selectedDate: $selectedDate)
                         .id("daily")
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .leading).combined(with: .opacity),
+                            removal: .move(edge: .trailing).combined(with: .opacity)
+                        ))
                 case .weekly:
                     WeeklyView(
                         selectedDate: $selectedDate,
                         onDateTapped: { date in
                             selectedDate = date
-                            selectedTab = .daily
+                            withAnimation(animConfig.habitToggleAnimation) {
+                                selectedTab = .daily
+                            }
                         }
                     )
                     .id("weekly")
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
                 }
             }
+            .animation(.easeInOut(duration: animConfig.tabTransitionDuration), value: selectedTab)
             .background(.ultraThinMaterial)
 
             // Custom tab bar at bottom
             CustomTabBar(selectedTab: $selectedTab)
+
+            // Debug panel toggle button (top-right)
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            showDebugPanel.toggle()
+                        }
+                    }) {
+                        Image(systemName: showDebugPanel ? "xmark.circle.fill" : "slider.horizontal.3")
+                            .font(.title2)
+                            .foregroundStyle(.white.opacity(0.6))
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.2), radius: 8)
+                    }
+                    .padding()
+                }
+                Spacer()
+            }
         }
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $showDebugPanel) {
+            AnimationDebugPanel()
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
     }
 }
 
@@ -101,15 +144,23 @@ struct TabButton: View {
     let isSelected: Bool
     let action: () -> Void
 
+    @State private var isPressed = false
+
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            // Haptic feedback
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.impactOccurred()
+
+            action()
+        }) {
             VStack(spacing: 2) {
                 Image(systemName: icon)
                     .font(.body)
                 Text(title)
                     .font(.caption2)
             }
-            .foregroundStyle(isSelected ? .primary : .secondary)
+            .foregroundStyle(isSelected ? .white : .white.opacity(0.5))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 4)
             .background(
@@ -118,7 +169,18 @@ struct TabButton: View {
                         .fill(.ultraThinMaterial) :
                     nil
             )
+            .scaleEffect(isPressed ? 0.95 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: isPressed)
         }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    isPressed = true
+                }
+                .onEnded { _ in
+                    isPressed = false
+                }
+        )
     }
 }
 

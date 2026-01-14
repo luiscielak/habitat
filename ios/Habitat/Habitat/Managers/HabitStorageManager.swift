@@ -175,6 +175,121 @@ class HabitStorageManager {
         return (try? decoder.decode([String: Date].self, from: data)) ?? [:]
     }
 
+    // MARK: - Historical Query Methods
+
+    /// Load habits for a range of dates
+    ///
+    /// - Parameters:
+    ///   - from: Start date (inclusive)
+    ///   - to: End date (inclusive)
+    /// - Returns: Dictionary mapping dates to habit arrays
+    func loadHabitsForDateRange(from startDate: Date, to endDate: Date) -> [Date: [Habit]] {
+        var results: [Date: [Habit]] = [:]
+        let calendar = Calendar.current
+
+        // Get start of day for both dates
+        guard let start = calendar.startOfDay(for: startDate) as Date?,
+              let end = calendar.startOfDay(for: endDate) as Date? else {
+            return results
+        }
+
+        // Iterate through each day in the range
+        var currentDate = start
+        while currentDate <= end {
+            if let habits = loadHabits(for: currentDate) {
+                results[currentDate] = habits
+            }
+            // Move to next day
+            guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else {
+                break
+            }
+            currentDate = nextDate
+        }
+
+        return results
+    }
+
+    /// Load habits for a full week containing the given date
+    ///
+    /// Week runs from Sunday to Saturday.
+    ///
+    /// - Parameter date: Any date within the desired week
+    /// - Returns: Dictionary mapping dates to habit arrays for that week
+    func loadHabitsForWeek(containing date: Date) -> [Date: [Habit]] {
+        let calendar = Calendar.current
+
+        // Get the Sunday of the week containing this date
+        let weekday = calendar.component(.weekday, from: date)
+        let daysToSubtract = weekday - 1 // Sunday is 1, so this gives us days since Sunday
+        guard let sunday = calendar.date(byAdding: .day, value: -daysToSubtract, to: date) else {
+            return [:]
+        }
+
+        // Get Saturday (6 days after Sunday)
+        guard let saturday = calendar.date(byAdding: .day, value: 6, to: sunday) else {
+            return [:]
+        }
+
+        return loadHabitsForDateRange(from: sunday, to: saturday)
+    }
+
+    /// Get completion history for a specific habit over multiple days
+    ///
+    /// - Parameters:
+    ///   - habitTitle: The title of the habit to track
+    ///   - days: Number of days to look back (including today)
+    /// - Returns: Array of (date, completion status) tuples
+    func getCompletionHistory(for habitTitle: String, days: Int) -> [(Date, Bool)] {
+        var history: [(Date, Bool)] = []
+        let calendar = Calendar.current
+
+        // Start from today and go backwards
+        for daysAgo in 0..<days {
+            guard let date = calendar.date(byAdding: .day, value: -daysAgo, to: Date()) else {
+                continue
+            }
+
+            // Check if this habit was completed on this date
+            if let habits = loadHabits(for: date),
+               let habit = habits.first(where: { $0.title == habitTitle }) {
+                history.append((date, habit.isCompleted))
+            } else {
+                // No data for this date - treat as not completed
+                history.append((date, false))
+            }
+        }
+
+        return history.reversed() // Return in chronological order (oldest first)
+    }
+
+    /// Get all dates that have saved habit data
+    ///
+    /// Scans UserDefaults for all habitData_ keys.
+    ///
+    /// - Returns: Array of dates with saved data
+    func getAllSavedDates() -> [Date] {
+        let defaults = UserDefaults.standard
+        let allKeys = defaults.dictionaryRepresentation().keys
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone.current
+
+        var dates: [Date] = []
+        for key in allKeys {
+            // Check if this is a habit data key
+            if key.hasPrefix("habitData_") {
+                // Extract date string
+                let dateString = key.replacingOccurrences(of: "habitData_", with: "")
+                if let date = formatter.date(from: dateString) {
+                    dates.append(date)
+                }
+            }
+        }
+
+        return dates.sorted()
+    }
+
     // MARK: - Day Management
 
     /// Check if we need to reset habits for a new day
