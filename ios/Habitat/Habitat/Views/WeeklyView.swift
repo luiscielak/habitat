@@ -25,6 +25,7 @@ struct WeeklyView: View {
     /// Storage and services
     private let storage = HabitStorageManager.shared
     private let analytics = HabitAnalyticsService.shared
+    private let conditionalManager = ConditionalHabitManager.shared
 
     /// Currently editing habit for time picker
     @State private var editingHabit: (title: String, date: Date, currentTime: Date)?
@@ -40,9 +41,27 @@ struct WeeklyView: View {
         selectedDate.weekDates()
     }
 
-    /// All habit titles from definitions
+    /// Get visible habit titles for the week (filters conditional habits)
+    ///
+    /// Only includes habits that should be visible at least once during the week
     private var habitTitles: [String] {
-        HabitDefinitions.allTitles
+        var visibleTitles = Set<String>()
+        
+        // Check each day to see which habits are visible
+        for date in weekDates {
+            if let habits = storage.loadHabits(for: date) {
+                let visibleHabits = conditionalManager.filterVisibleHabits(habits, date: date)
+                visibleTitles.formUnion(visibleHabits.map { $0.title })
+            } else {
+                // For days with no data, create defaults and filter
+                let defaultHabits = createDefaultHabitsArray()
+                let visibleHabits = conditionalManager.filterVisibleHabits(defaultHabits, date: date)
+                visibleTitles.formUnion(visibleHabits.map { $0.title })
+            }
+        }
+        
+        // Return in definition order
+        return HabitDefinitions.allTitles.filter { visibleTitles.contains($0) }
     }
 
     var body: some View {
@@ -125,16 +144,24 @@ struct WeeklyView: View {
                             // Heat map indicators across width
                             HStack(spacing: 4) {
                                 ForEach(Array(weekDates.enumerated()), id: \.offset) { index, date in
-                                    HeatMapIndicator(
-                                        isCompleted: isHabitCompleted(habitTitle, on: date),
-                                        date: date,
-                                        intensity: calculateIntensity(for: habitTitle, on: date),
-                                        onTap: {
-                                            toggleHabit(habitTitle, on: date)
-                                        }
-                                    )
-                                    .frame(maxWidth: .infinity)
-                                    .id("\(habitTitle)-\(index)")
+                                    // Only show indicator if habit is visible on this date
+                                    if isHabitVisible(habitTitle, on: date) {
+                                        HeatMapIndicator(
+                                            isCompleted: isHabitCompleted(habitTitle, on: date),
+                                            date: date,
+                                            intensity: calculateIntensity(for: habitTitle, on: date),
+                                            onTap: {
+                                                toggleHabit(habitTitle, on: date)
+                                            }
+                                        )
+                                        .frame(maxWidth: .infinity)
+                                        .id("\(habitTitle)-\(index)")
+                                    } else {
+                                        // Show empty space for hidden conditional habits
+                                        Color.clear
+                                            .frame(maxWidth: .infinity)
+                                            .id("\(habitTitle)-\(index)-hidden")
+                                    }
                                 }
                             }
                         }
@@ -179,18 +206,22 @@ struct WeeklyView: View {
     }
 
     /// Load completion status for all habits across the week
+    /// Only tracks habits that should be visible (conditional habits only when visible)
     private func loadCompletionCache() {
         var cache: [String: Set<String>] = [:]
 
         for date in weekDates {
             let dateKey = storage.dateKey(from: date)
-            if let habits = storage.loadHabits(for: date) {
-                for habit in habits where habit.isCompleted {
-                    if cache[habit.title] == nil {
-                        cache[habit.title] = []
-                    }
-                    cache[habit.title]?.insert(dateKey)
+            let habits = storage.loadHabits(for: date) ?? createDefaultHabitsArray()
+            
+            // Only track visible habits (filter conditional habits)
+            let visibleHabits = conditionalManager.filterVisibleHabits(habits, date: date)
+            
+            for habit in visibleHabits where habit.isCompleted {
+                if cache[habit.title] == nil {
+                    cache[habit.title] = []
                 }
+                cache[habit.title]?.insert(dateKey)
             }
         }
 
@@ -219,9 +250,11 @@ struct WeeklyView: View {
 
         // If completing a time-tracked habit, show time picker
         if isNowCompleted && habits[index].needsTimeTracking {
-            if let currentTime = habits[index].trackedTime {
-                editingHabit = (habitTitle, date, currentTime)
-            }
+            // Use existing time, or default time, or current time as fallback
+            let timeToUse = habits[index].trackedTime ?? 
+                           Habit.defaultTime(for: habitTitle) ?? 
+                           Date()
+            editingHabit = (habitTitle, date, timeToUse)
         }
 
         // Save immediately
@@ -288,6 +321,15 @@ struct WeeklyView: View {
     private func isHabitCompleted(_ habitTitle: String, on date: Date) -> Bool {
         let dateKey = storage.dateKey(from: date)
         return completionCache[habitTitle]?.contains(dateKey) ?? false
+    }
+
+    /// Check if a habit should be visible on a specific date (respects conditional logic)
+    private func isHabitVisible(_ habitTitle: String, on date: Date) -> Bool {
+        let habits = storage.loadHabits(for: date) ?? createDefaultHabitsArray()
+        guard let habit = habits.first(where: { $0.title == habitTitle }) else {
+            return false
+        }
+        return conditionalManager.shouldShowHabit(habit, given: habits, date: date)
     }
 
     /// Check if a date is today

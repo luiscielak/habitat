@@ -34,9 +34,6 @@ struct DailyView: View {
     private let insightEngine = InsightEngine.shared
     private let conditionalManager = ConditionalHabitManager.shared
 
-    /// Swipe gesture state for tracking drag amount
-    @State private var dragOffset: CGFloat = 0
-
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -75,24 +72,6 @@ struct DailyView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        // Swipe gesture for day navigation
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    dragOffset = value.translation.width
-                }
-                .onEnded { value in
-                    // Threshold: 100 points swipe = navigate
-                    if value.translation.width > 100 {
-                        // Swipe right = previous day
-                        selectedDate = selectedDate.addingDays(-1)
-                    } else if value.translation.width < -100 {
-                        // Swipe left = next day
-                        selectedDate = selectedDate.addingDays(1)
-                    }
-                    dragOffset = 0
-                }
-        )
         .onAppear {
             loadHabitsForSelectedDate()
         }

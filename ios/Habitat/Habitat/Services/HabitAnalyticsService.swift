@@ -21,6 +21,7 @@ class HabitAnalyticsService {
     static let shared = HabitAnalyticsService()
 
     private let storage = HabitStorageManager.shared
+    private let conditionalManager = ConditionalHabitManager.shared
 
     private init() {}
 
@@ -165,21 +166,45 @@ class HabitAnalyticsService {
     /// - Parameter weekDates: Array of dates representing the week
     /// - Returns: Title of strongest habit, or nil if no data
     func getStrongestHabit(in weekDates: [Date]) -> String? {
-        var habitScores: [String: Int] = [:]
+        var habitCompletions: [String: Int] = [:]
+        var habitOccurrences: [String: Int] = [:]
 
-        // Count completions for each habit across the week
+        // Count completions AND occurrences for each habit across the week
+        // Only count habits that should be visible (filter conditional habits)
         for date in weekDates {
-            guard let habits = storage.loadHabits(for: date) else { continue }
+            // Load habits or create defaults
+            let habits = storage.loadHabits(for: date) ?? HabitDefinitions.createDefaultHabits(customTimes: storage.loadAllCustomTimes())
 
-            for habit in habits {
+            // Filter to only visible habits (conditional habits only count when visible)
+            let visibleHabits = conditionalManager.filterVisibleHabits(habits, date: date)
+
+            for habit in visibleHabits {
+                // Track that this habit existed on this day
+                habitOccurrences[habit.title, default: 0] += 1
+                
+                // Track if it was completed
                 if habit.isCompleted {
-                    habitScores[habit.title, default: 0] += 1
+                    habitCompletions[habit.title, default: 0] += 1
                 }
             }
         }
 
-        // Find habit with most completions
-        return habitScores.max(by: { $0.value < $1.value })?.key
+        // Calculate completion rates and find the highest
+        var habitRates: [(String, Double)] = []
+        
+        for (habitTitle, occurrences) in habitOccurrences {
+            let completions = habitCompletions[habitTitle] ?? 0
+            let rate = occurrences > 0 ? Double(completions) / Double(occurrences) : 0.0
+            
+            // Only consider habits with at least 1 occurrence and completion
+            if occurrences > 0 && completions > 0 {
+                habitRates.append((habitTitle, rate))
+            }
+        }
+
+        // Sort by completion rate (highest first) and return the strongest
+        let sorted = habitRates.sorted { $0.1 > $1.1 }
+        return sorted.first?.0
     }
 
     /// Find the most fragile habit in a given week
@@ -189,24 +214,45 @@ class HabitAnalyticsService {
     /// - Parameter weekDates: Array of dates representing the week
     /// - Returns: Title of most fragile habit, or nil if no data
     func getMostFragileHabit(in weekDates: [Date]) -> String? {
-        var habitScores: [String: Int] = [:]
+        var habitCompletions: [String: Int] = [:]
+        var habitOccurrences: [String: Int] = [:]
 
-        // Count completions for each habit across the week
+        // Count completions AND occurrences for each habit across the week
+        // Only count habits that should be visible (filter conditional habits)
         for date in weekDates {
-            guard let habits = storage.loadHabits(for: date) else { continue }
+            // Load habits or create defaults
+            let habits = storage.loadHabits(for: date) ?? HabitDefinitions.createDefaultHabits(customTimes: storage.loadAllCustomTimes())
 
-            for habit in habits {
+            // Filter to only visible habits (conditional habits only count when visible)
+            let visibleHabits = conditionalManager.filterVisibleHabits(habits, date: date)
+
+            for habit in visibleHabits {
+                // Track that this habit existed on this day
+                habitOccurrences[habit.title, default: 0] += 1
+                
+                // Track if it was completed
                 if habit.isCompleted {
-                    habitScores[habit.title, default: 0] += 1
+                    habitCompletions[habit.title, default: 0] += 1
                 }
             }
         }
 
-        // Find habit with fewest completions (but > 0 to avoid unfair penalization)
-        let sorted = habitScores.filter { $0.value > 0 && $0.value < weekDates.count }
-            .sorted { $0.value < $1.value }
+        // Calculate completion rates and find the lowest (excluding perfect habits)
+        var habitRates: [(String, Double)] = []
+        
+        for (habitTitle, occurrences) in habitOccurrences {
+            let completions = habitCompletions[habitTitle] ?? 0
+            let rate = occurrences > 0 ? Double(completions) / Double(occurrences) : 0.0
+            
+            // Only consider habits that aren't perfect (rate < 1.0) and have at least 1 occurrence
+            if rate < 1.0 && occurrences > 0 {
+                habitRates.append((habitTitle, rate))
+            }
+        }
 
-        return sorted.first?.key
+        // Sort by completion rate (lowest first) and return the most fragile
+        let sorted = habitRates.sorted { $0.1 < $1.1 }
+        return sorted.first?.0
     }
 
     // MARK: - Heat Map Intensity
@@ -230,13 +276,18 @@ class HabitAnalyticsService {
 
         let window = [yesterday, date, tomorrow]
 
-        // Count completions in window
+        // Count completions in window (only count days where habit is visible)
         var completions = 0
         var totalDays = 0
 
         for day in window {
-            if let habits = storage.loadHabits(for: day),
-               let habit = habits.first(where: { $0.title == habitTitle }) {
+            // Load habits or create defaults
+            let habits = storage.loadHabits(for: day) ?? HabitDefinitions.createDefaultHabits(customTimes: storage.loadAllCustomTimes())
+            
+            // Filter to visible habits (conditional habits only count when visible)
+            let visibleHabits = conditionalManager.filterVisibleHabits(habits, date: day)
+            
+            if let habit = visibleHabits.first(where: { $0.title == habitTitle }) {
                 totalDays += 1
                 if habit.isCompleted {
                     completions += 1
