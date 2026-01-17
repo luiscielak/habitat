@@ -95,14 +95,14 @@ struct WeeklyView: View {
                 .padding(.horizontal)
                 .padding(.top)
 
-                // Weekly Summary Card
-                WeeklySummaryCard(
-                    weekDates: weekDates,
-                    strongestHabit: analytics.getStrongestHabit(in: weekDates),
-                    fragileHabit: analytics.getMostFragileHabit(in: weekDates)
-                )
-                .padding(.horizontal)
-                .padding(.vertical, 12)
+                // TEMPORARILY REMOVED: Weekly Summary Card
+                // WeeklySummaryCard(
+                //     weekDates: weekDates,
+                //     strongestHabit: analytics.getStrongestHabit(in: weekDates),
+                //     fragileHabit: analytics.getMostFragileHabit(in: weekDates)
+                // )
+                // .padding(.horizontal)
+                // .padding(.vertical, 12)
 
                 // Day names header with today highlight
                 HStack(spacing: 0) {

@@ -45,19 +45,19 @@ struct DailyView: View {
                 DateHeaderView(date: selectedDate)
                     .padding()
 
-                // Impact Score Card (replaces simple counter)
-                if let stats = dailyStats {
-                    ImpactScoreCard(stats: stats)
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
-                }
+                // TEMPORARILY REMOVED: Impact Score Card
+                // if let stats = dailyStats {
+                //     ImpactScoreCard(stats: stats)
+                //         .padding(.horizontal)
+                //         .padding(.bottom, 8)
+                // }
 
-                // Daily Insight Card (coaching message)
-                if let insight = dailyInsight {
-                    InsightCard(insight: insight)
-                        .padding(.horizontal)
-                        .padding(.bottom, 16)
-                }
+                // TEMPORARILY REMOVED: Daily Insight Card (coaching message)
+                // if let insight = dailyInsight {
+                //     InsightCard(insight: insight)
+                //         .padding(.horizontal)
+                //         .padding(.bottom, 16)
+                // }
 
                 // Grouped habits with progressive disclosure
                 VStack(spacing: 12) {
