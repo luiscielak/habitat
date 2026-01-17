@@ -11,21 +11,16 @@ import PhotosUI
 /// A reusable SwiftUI component for logging a single meal category with evidence-based tracking.
 ///
 /// Features:
-/// - Completion toggle (habit-style)
-/// - Optional inline details drawer
 /// - Attachments: image, text, URL
 /// - Read-only macro display as chips (extracted from evidence)
 /// - Progressive disclosure of macro information
 ///
 /// Visual Style:
-/// - Dark instrumentation with violet energy
-/// - Violet (#C084FC) for completion & focus
-/// - Magenta (#EC4899) for active input
-/// - No success/failure evaluation colors
+/// - Matches app's glass morphism theme
+/// - Clean, minimal design for sheet presentation
 struct NutritionLogRow: View {
     @Binding var meal: NutritionMeal
 
-    @State private var isExpanded: Bool = false
     @State private var textInput: String = ""
     @State private var urlInput: String = ""
     @State private var showAllMacros: Bool = false
@@ -36,125 +31,24 @@ struct NutritionLogRow: View {
     private let magentaAccent = Color(red: 0.925, green: 0.282, blue: 0.6)  // #EC4899
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Collapsed Row
-            collapsedRow
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        isExpanded.toggle()
-                    }
-                }
-
-            // Expanded Drawer
-            if isExpanded {
-                expandedDrawer
-                    .transition(.asymmetric(
-                        insertion: .opacity.combined(with: .move(edge: .top)),
-                        removal: .opacity
-                    ))
-            }
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(isExpanded ? violetAccent.opacity(0.08) : Color.white.opacity(0.05))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
-        )
-        .sheet(isPresented: $showingImagePicker) {
-            ImagePickerPlaceholder(onImageSelected: { image in
-                addImageAttachment(image)
-            })
-        }
-    }
-
-    // MARK: - Collapsed Row
-
-    private var collapsedRow: some View {
-        HStack(spacing: 12) {
-            // Completion Check Circle
-            completionButton
-
-            // Meal Label + Macros
-            VStack(alignment: .leading, spacing: 4) {
-                Text(meal.label)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundColor(.primary)
-
-                // Macro chips (collapsed: kcal + protein only)
-                if let macros = meal.extractedMacros, macros.hasAnyData {
-                    macroChips(showAll: false)
+        VStack(alignment: .leading, spacing: 20) {
+            // Header with meal label
+            Text(meal.label)
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundStyle(.primary)
+            
+            // Macro chips (if available)
+            if let macros = meal.extractedMacros, macros.hasAnyData {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Extracted Macros")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    
+                    macroChips(showAll: true)
                 }
             }
-
-            Spacer()
-
-            // Time Pill + Add Details Affordance
-            HStack(spacing: 8) {
-                if let time = meal.time {
-                    timePill(time)
-                }
-
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-    }
-
-    private var completionButton: some View {
-        Button(action: {
-            let generator = UIImpactFeedbackGenerator(style: .light)
-            generator.impactOccurred()
-
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                meal.isCompleted.toggle()
-                if meal.isCompleted && meal.time == nil {
-                    meal.time = Date()
-                }
-            }
-        }) {
-            ZStack {
-                Circle()
-                    .strokeBorder(
-                        meal.isCompleted ? violetAccent : Color.white.opacity(0.3),
-                        lineWidth: 2
-                    )
-                    .frame(width: 24, height: 24)
-
-                if meal.isCompleted {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(violetAccent)
-                }
-            }
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-
-    private func timePill(_ time: Date) -> some View {
-        Text(time, style: .time)
-            .font(.system(size: 13, weight: .medium))
-            .foregroundColor(.secondary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(
-                Capsule()
-                    .fill(Color.white.opacity(0.08))
-            )
-    }
-
-    // MARK: - Expanded Drawer
-
-    private var expandedDrawer: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Divider()
-                .background(Color.white.opacity(0.1))
-
+            
             // Attachment Buttons
             HStack(spacing: 12) {
                 attachmentButton(
@@ -180,7 +74,7 @@ struct NutritionLogRow: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Notes or recipe paste")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
                 TextField("e.g., 450 kcal, 25g protein, 30g carbs, 15g fat", text: $textInput)
                     .textFieldStyle(CustomTextFieldStyle(accentColor: magentaAccent))
@@ -196,7 +90,7 @@ struct NutritionLogRow: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("URL")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
                 TextField("Paste URL here", text: $urlInput)
                     .textFieldStyle(CustomTextFieldStyle(accentColor: magentaAccent))
@@ -214,21 +108,15 @@ struct NutritionLogRow: View {
             if !meal.attachments.isEmpty {
                 attachmentsList
             }
-
-            // Full Macro Chips (when expanded)
-            if let macros = meal.extractedMacros, macros.hasAnyData {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Extracted Macros")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-
-                    macroChips(showAll: true)
-                }
-            }
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 16)
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePickerPlaceholder(onImageSelected: { image in
+                addImageAttachment(image)
+            })
+        }
     }
+
+    // MARK: - Content Views
 
     private func attachmentButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -280,8 +168,10 @@ struct NutritionLogRow: View {
             // Delete Button
             Button(action: {
                 withAnimation {
-                    meal.attachments.remove(at: index)
-                    updateExtractedMacros()
+                    var updatedMeal = meal
+                    updatedMeal.attachments.remove(at: index)
+                    updateExtractedMacros(&updatedMeal)
+                    meal = updatedMeal
                 }
             }) {
                 Image(systemName: "xmark.circle.fill")
@@ -322,7 +212,7 @@ struct NutritionLogRow: View {
     private func macroChips(showAll: Bool) -> some View {
         HStack(spacing: 6) {
             if let macros = meal.extractedMacros {
-                // Always show kcal and protein (if available)
+                // Show all macros when in sheet view
                 if let cal = macros.calories {
                     macroChip(value: cal, unit: "kcal", label: nil)
                 }
@@ -331,34 +221,12 @@ struct NutritionLogRow: View {
                     macroChip(value: protein, unit: "g", label: "Protein")
                 }
 
-                // Show carbs and fat only when expanded or showAllMacros is true
-                if showAll || showAllMacros {
-                    if let carbs = macros.carbs {
-                        macroChip(value: carbs, unit: "g", label: "Carbs")
-                    }
-
-                    if let fat = macros.fat {
-                        macroChip(value: fat, unit: "g", label: "Fat")
-                    }
+                if let carbs = macros.carbs {
+                    macroChip(value: carbs, unit: "g", label: "Carbs")
                 }
 
-                // Show expand button when collapsed and extended macros exist
-                if !showAll && !showAllMacros && macros.hasExtendedMacros {
-                    Button(action: {
-                        withAnimation {
-                            showAllMacros = true
-                        }
-                    }) {
-                        Image(systemName: "ellipsis")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(violetAccent)
-                            .frame(width: 32, height: 24)
-                            .background(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(violetAccent.opacity(0.15))
-                            )
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                if let fat = macros.fat {
+                    macroChip(value: fat, unit: "g", label: "Fat")
                 }
             }
         }
@@ -388,27 +256,33 @@ struct NutritionLogRow: View {
 
     private func addImageAttachment(_ image: UIImage) {
         withAnimation {
-            meal.attachments.append(.image(image))
+            var updatedMeal = meal
+            updatedMeal.attachments.append(.image(image))
             // In a real app with OCR, we would extract macros from the image here
             // For MVP, we just add the attachment
+            meal = updatedMeal
         }
     }
 
     private func addTextAttachment(_ text: String) {
         withAnimation {
-            meal.attachments.append(.text(text))
-            updateExtractedMacros()
+            var updatedMeal = meal
+            updatedMeal.attachments.append(.text(text))
+            updateExtractedMacros(&updatedMeal)
+            meal = updatedMeal
         }
     }
 
     private func addURLAttachment(_ url: URL) {
         withAnimation {
-            meal.attachments.append(.url(url))
-            updateExtractedMacros()
+            var updatedMeal = meal
+            updatedMeal.attachments.append(.url(url))
+            updateExtractedMacros(&updatedMeal)
+            meal = updatedMeal
         }
     }
 
-    private func updateExtractedMacros() {
+    private func updateExtractedMacros(_ meal: inout NutritionMeal) {
         meal.extractedMacros = MacroParser.extract(from: meal.attachments)
     }
 }

@@ -16,6 +16,7 @@ import SwiftUI
 struct HabitGroupSection: View {
     @Binding var group: HabitGroup
     let onHabitChange: (Int, Habit) -> Void
+    let selectedDate: Date
 
     @ObservedObject private var animConfig = AnimationConfig.shared
 
@@ -64,15 +65,28 @@ struct HabitGroupSection: View {
             if group.isExpanded {
                 VStack(spacing: 0) {
                     ForEach(Array(group.habits.enumerated()), id: \.offset) { index, habit in
-                        HabitRowView(habit: Binding(
-                            get: { group.habits[index] },
-                            set: { newValue in
-                                group.habits[index] = newValue
-                                onHabitChange(index, newValue)
-                            }
-                        ))
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
+                        // Use NutritionHabitRowView for nutrition category, HabitRowView for others
+                        if group.category == .nutrition {
+                            NutritionHabitRowView(habit: Binding(
+                                get: { group.habits[index] },
+                                set: { newValue in
+                                    group.habits[index] = newValue
+                                    onHabitChange(index, newValue)
+                                }
+                            ), date: selectedDate)
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
+                        } else {
+                            HabitRowView(habit: Binding(
+                                get: { group.habits[index] },
+                                set: { newValue in
+                                    group.habits[index] = newValue
+                                    onHabitChange(index, newValue)
+                                }
+                            ))
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
+                        }
 
                         if index < group.habits.count - 1 {
                             Divider()
@@ -104,9 +118,9 @@ struct HabitGroupSection: View {
 
         var body: some View {
             VStack {
-                HabitGroupSection(group: $group) { index, habit in
+                HabitGroupSection(group: $group, onHabitChange: { index, habit in
                     print("Habit changed: \(habit.title)")
-                }
+                }, selectedDate: Date())
             }
             .padding()
             .background(.ultraThinMaterial)

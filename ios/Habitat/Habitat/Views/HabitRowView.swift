@@ -29,7 +29,41 @@ struct HabitRowView: View {
 
     var body: some View {
         HStack {
-            // Habit title on the left
+            // Custom circular checkbox on the left
+            Button(action: {
+                // Haptic feedback
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+                
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                    habit.isCompleted.toggle()
+                }
+            }) {
+                ZStack {
+                    // Background circle
+                    Circle()
+                        .fill(habit.isCompleted ? Color.white : Color.clear)
+                        .frame(width: 24, height: 24)
+                    
+                    // Border circle (gray when unchecked)
+                    Circle()
+                        .strokeBorder(
+                            habit.isCompleted ? Color.white : Color.gray.opacity(0.5),
+                            lineWidth: habit.isCompleted ? 0 : 2
+                        )
+                        .frame(width: 24, height: 24)
+                    
+                    // Checkmark when completed (dark on white for visibility)
+                    if habit.isCompleted {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.black)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            // Habit title in the middle
             Text(habit.title)
                 .font(.body)
                 .foregroundStyle(.primary)
@@ -53,11 +87,6 @@ struct HabitRowView: View {
                 }
                 .buttonStyle(.plain)  // Remove default blue tint
             }
-
-            // Checkbox toggle (always shown)
-            // The $ creates a binding to the isCompleted property
-            Toggle("", isOn: $habit.isCompleted)
-                .labelsHidden() // Hide the label since we show it as Text
         }
         .padding(.vertical, 4) // Add some vertical spacing
         // Sheet modifier - presents TimePickerSheet when showingTimePicker is true

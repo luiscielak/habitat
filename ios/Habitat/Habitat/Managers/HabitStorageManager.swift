@@ -289,6 +289,68 @@ class HabitStorageManager {
 
         return dates.sorted()
     }
+    
+    // MARK: - Nutrition Meal Storage
+    
+    /// Save nutrition meal data for a specific habit and date
+    ///
+    /// - Parameters:
+    ///   - meal: The nutrition meal to save
+    ///   - habitId: The UUID of the associated habit
+    ///   - date: The date this meal belongs to
+    func saveNutritionMeal(_ meal: NutritionMeal, for habitId: UUID, date: Date) {
+        let key = nutritionMealKey(for: habitId, date: date)
+        
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        
+        do {
+            let data = try encoder.encode(meal)
+            UserDefaults.standard.set(data, forKey: key)
+            print("✅ Saved nutrition meal for habit \(habitId) on \(key)")
+        } catch {
+            print("❌ Failed to save nutrition meal: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Load nutrition meal data for a specific habit and date
+    ///
+    /// - Parameters:
+    ///   - habitId: The UUID of the associated habit
+    ///   - date: The date to load the meal for
+    /// - Returns: The nutrition meal, or nil if none saved
+    func loadNutritionMeal(for habitId: UUID, date: Date) -> NutritionMeal? {
+        let key = nutritionMealKey(for: habitId, date: date)
+        
+        guard let data = UserDefaults.standard.data(forKey: key) else {
+            return nil
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        
+        do {
+            let meal = try decoder.decode(NutritionMeal.self, from: data)
+            print("✅ Loaded nutrition meal for habit \(habitId) on \(key)")
+            return meal
+        } catch {
+            print("❌ Failed to load nutrition meal: \(error.localizedDescription)")
+            return nil
+        }
+    }
+    
+    /// Generate storage key for nutrition meal data
+    ///
+    /// Format: "nutritionMeal_<date>_<habitId>"
+    ///
+    /// - Parameters:
+    ///   - habitId: The UUID of the habit
+    ///   - date: The date
+    /// - Returns: Storage key string
+    private func nutritionMealKey(for habitId: UUID, date: Date) -> String {
+        let dateKey = self.dateKey(from: date).replacingOccurrences(of: "habitData_", with: "")
+        return "nutritionMeal_\(dateKey)_\(habitId.uuidString)"
+    }
 
     // MARK: - Day Management
 

@@ -62,9 +62,13 @@ struct DailyView: View {
                 // Grouped habits with progressive disclosure
                 VStack(spacing: 12) {
                     ForEach($habitGroups) { $group in
-                        HabitGroupSection(group: $group) { index, newHabit in
-                            handleHabitChange(in: group.category, at: index, newValue: newHabit)
-                        }
+                        HabitGroupSection(
+                            group: $group,
+                            onHabitChange: { index, newHabit in
+                                handleHabitChange(in: group.category, at: index, newValue: newHabit)
+                            },
+                            selectedDate: selectedDate
+                        )
                     }
                 }
                 .padding(.horizontal)
