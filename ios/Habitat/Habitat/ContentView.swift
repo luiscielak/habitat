@@ -78,7 +78,7 @@ struct ContentView: View {
                         .id("home")
                         .transition(transitionForTab(.home, from: previousTab))
                 case .daily:
-                    DailyView(selectedDate: $selectedDate)
+                    TimelineView(selectedDate: $selectedDate)
                         .id("daily")
                         .transition(transitionForTab(.daily, from: previousTab))
                 case .weekly:

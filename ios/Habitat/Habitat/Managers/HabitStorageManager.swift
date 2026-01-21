@@ -46,6 +46,15 @@ class HabitStorageManager {
     /// Stored as: "customTimes" → Dictionary<String, Date>
     /// Example: {"Breakfast": Date(...), "Lunch": Date(...)}
     private let customTimesKey = "customTimes"
+    
+    /// Key for storing timeline events
+    ///
+    /// Stored as: "events_YYYY-MM-DD" → [Event]
+    private func eventsKey(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return "events_\(formatter.string(from: date))"
+    }
 
     // MARK: - Public API
 
@@ -568,5 +577,50 @@ class HabitStorageManager {
         // Use current timezone (not UTC)
         formatter.timeZone = TimeZone.current
         return "habitData_\(formatter.string(from: date))"
+    }
+    
+    // MARK: - Event Storage (Timeline Feature)
+    
+    /// Save events for a specific date
+    func saveEvents(_ events: [Event], for date: Date) {
+        let key = eventsKey(for: date)
+        do {
+            let data = try JSONEncoder().encode(events)
+            UserDefaults.standard.set(data, forKey: key)
+        } catch {
+            print("Failed to save events: \(error)")
+        }
+    }
+    
+    /// Load events for a specific date
+    func loadEvents(for date: Date) -> [Event] {
+        let key = eventsKey(for: date)
+        guard let data = UserDefaults.standard.data(forKey: key) else {
+            return []
+        }
+        do {
+            return try JSONDecoder().decode([Event].self, from: data)
+        } catch {
+            print("Failed to load events: \(error)")
+            return []
+        }
+    }
+    
+    /// Save a single event (adds or updates)
+    func saveEvent(_ event: Event, for date: Date) {
+        var events = loadEvents(for: date)
+        if let index = events.firstIndex(where: { $0.id == event.id }) {
+            events[index] = event
+        } else {
+            events.append(event)
+        }
+        saveEvents(events, for: date)
+    }
+    
+    /// Delete an event
+    func deleteEvent(_ event: Event, for date: Date) {
+        var events = loadEvents(for: date)
+        events.removeAll(where: { $0.id == event.id })
+        saveEvents(events, for: date)
     }
 }
