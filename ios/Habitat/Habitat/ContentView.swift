@@ -19,52 +19,96 @@ struct ContentView: View {
     @State private var selectedDate: Date = Date()
 
     /// Currently selected tab
-    @State private var selectedTab: ViewTab = .daily
+    @State private var selectedTab: ViewTab = .home
+    @State private var previousTab: ViewTab = .home
 
     /// Show animation debug panel
     @State private var showDebugPanel = false
 
     @ObservedObject private var animConfig = AnimationConfig.shared
 
+    /// Determine transition direction based on tab order
+    private func transitionForTab(_ tab: ViewTab, from previous: ViewTab) -> AnyTransition {
+        let tabOrder: [ViewTab] = [.home, .daily, .weekly]
+        guard let currentIndex = tabOrder.firstIndex(of: tab),
+              let previousIndex = tabOrder.firstIndex(of: previous) else {
+            return .opacity
+        }
+        
+        let movingRight = currentIndex > previousIndex
+        
+        switch tab {
+        case .home:
+            // Home is leftmost - always comes/goes from left
+            return .asymmetric(
+                insertion: .move(edge: .leading).combined(with: .opacity),
+                removal: .move(edge: .leading).combined(with: .opacity)
+            )
+        case .daily:
+            // Daily is middle - direction depends on where we're coming from
+            if movingRight {
+                // Coming from Home - slide in from right
+                return .asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                )
+            } else {
+                // Coming from Weekly - slide in from left
+                return .asymmetric(
+                    insertion: .move(edge: .leading).combined(with: .opacity),
+                    removal: .move(edge: .trailing).combined(with: .opacity)
+                )
+            }
+        case .weekly:
+            // Weekly is rightmost - always comes/goes from right
+            return .asymmetric(
+                insertion: .move(edge: .trailing).combined(with: .opacity),
+                removal: .move(edge: .trailing).combined(with: .opacity)
+            )
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             // Main content area
             Group {
                 switch selectedTab {
+                case .home:
+                    HomeView(selectedDate: $selectedDate)
+                        .id("home")
+                        .transition(transitionForTab(.home, from: previousTab))
                 case .daily:
                     DailyView(selectedDate: $selectedDate)
                         .id("daily")
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .leading).combined(with: .opacity),
-                            removal: .move(edge: .trailing).combined(with: .opacity)
-                        ))
+                        .transition(transitionForTab(.daily, from: previousTab))
                 case .weekly:
                     WeeklyView(
                         selectedDate: $selectedDate,
                         onDateTapped: { date in
                             selectedDate = date
                             withAnimation(animConfig.habitToggleAnimation) {
+                                previousTab = selectedTab
                                 selectedTab = .daily
                             }
                         }
                     )
                     .id("weekly")
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .move(edge: .leading).combined(with: .opacity)
-                    ))
+                    .transition(transitionForTab(.weekly, from: previousTab))
                 }
             }
             .animation(.easeInOut(duration: animConfig.tabTransitionDuration), value: selectedTab)
             .background(.ultraThinMaterial)
 
             // Custom tab bar at bottom
-            CustomTabBar(selectedTab: $selectedTab)
+            CustomTabBar(selectedTab: $selectedTab, onTabChange: { newTab in
+                previousTab = selectedTab
+                selectedTab = newTab
+            })
 
-            // Debug panel toggle button (top-right)
+            // Debug/settings button (bottom-left, above tab bar)
             VStack {
+                Spacer()
                 HStack {
-                    Spacer()
                     Button(action: {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             showDebugPanel.toggle()
@@ -78,9 +122,10 @@ struct ContentView: View {
                             .clipShape(Circle())
                             .shadow(color: .black.opacity(0.2), radius: 8)
                     }
-                    .padding()
+                    .padding(.leading, 12)
+                    .padding(.bottom, 72) // Above the tab bar
+                    Spacer()
                 }
-                Spacer()
             }
         }
         .preferredColorScheme(.dark)
@@ -94,11 +139,13 @@ struct ContentView: View {
 
 /// Tab options
 enum ViewTab: String, CaseIterable {
+    case home = "Home"
     case daily = "Daily"
     case weekly = "Weekly"
 
     var icon: String {
         switch self {
+        case .home: return "house.fill"
         case .daily: return "calendar"
         case .weekly: return "calendar.badge.clock"
         }
@@ -114,6 +161,7 @@ enum ViewTab: String, CaseIterable {
 /// - Active/inactive state styling
 struct CustomTabBar: View {
     @Binding var selectedTab: ViewTab
+    let onTabChange: (ViewTab) -> Void
 
     var body: some View {
         HStack(spacing: 0) {
@@ -123,7 +171,9 @@ struct CustomTabBar: View {
                     icon: tab.icon,
                     isSelected: selectedTab == tab
                 ) {
-                    selectedTab = tab
+                    withAnimation(.easeInOut(duration: AnimationConfig.shared.tabTransitionDuration)) {
+                        onTabChange(tab)
+                    }
                 }
             }
         }

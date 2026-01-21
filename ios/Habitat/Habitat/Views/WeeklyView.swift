@@ -30,9 +30,6 @@ struct WeeklyView: View {
     /// Currently editing habit for time picker
     @State private var editingHabit: (title: String, date: Date, currentTime: Date)?
 
-    /// Streak data cache
-    @State private var streakCache: [String: StreakData] = [:]
-
     /// Completion cache for efficient updates
     @State private var completionCache: [String: Set<String>] = [:]
 
@@ -129,17 +126,10 @@ struct WeeklyView: View {
                 VStack(spacing: 12) {
                     ForEach(habitTitles, id: \.self) { habitTitle in
                         VStack(alignment: .leading, spacing: 6) {
-                            // Habit name with streak badge
-                            HStack {
-                                Text(habitTitle)
-                                    .font(.subheadline.weight(.medium))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                                // Streak badge
-                                if let streakData = streakCache[habitTitle] {
-                                    StreakBadge(streakData: streakData)
-                                }
-                            }
+                            // Habit name
+                            Text(habitTitle)
+                                .font(.subheadline.weight(.medium))
+                                .frame(maxWidth: .infinity, alignment: .leading)
 
                             // Heat map indicators across width
                             HStack(spacing: 4) {
@@ -176,12 +166,10 @@ struct WeeklyView: View {
         .scrollContentBackground(.hidden)
         .task {
             // Refresh the view when it appears to show latest data
-            loadStreakData()
             loadCompletionCache()
         }
         .onChange(of: selectedDate) { oldDate, newDate in
             // Refresh when navigating to a different week
-            loadStreakData()
             loadCompletionCache()
         }
         .sheet(item: Binding(
@@ -199,11 +187,6 @@ struct WeeklyView: View {
     }
 
     // MARK: - Helper Methods
-
-    /// Load streak data for all habits
-    private func loadStreakData() {
-        streakCache = analytics.calculateAllStreaks(for: weekDates.last ?? Date())
-    }
 
     /// Load completion status for all habits across the week
     /// Only tracks habits that should be visible (conditional habits only when visible)
@@ -271,9 +254,6 @@ struct WeeklyView: View {
         } else {
             completionCache[habitTitle]?.remove(dateKey)
         }
-
-        // Reload streaks (this is async and won't cause scroll reset)
-        loadStreakData()
     }
 
     /// Save habit time from time picker

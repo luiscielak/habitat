@@ -11,38 +11,40 @@ import SwiftUI
 ///
 /// Shows:
 /// - Category icon
-/// - Coaching message
+/// - Coaching message (supports multi-line GPT responses)
 /// - Related habits (optional)
 struct InsightCard: View {
     let insight: DailyInsight?
 
     var body: some View {
         if let insight = insight {
-            HStack(alignment: .top, spacing: 12) {
-                // Icon
-                Image(systemName: insight.category.icon)
-                    .font(.title2)
-                    .foregroundStyle(iconColor(for: insight.category))
-                    .frame(width: 32, height: 32)
-
-                // Content
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(insight.message)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 12) {
+                // Header row with icon and action label
+                HStack(spacing: 10) {
+                    Image(systemName: insight.category.icon)
+                        .font(.title3)
+                        .foregroundStyle(iconColor(for: insight.category))
+                        .frame(width: 28, height: 28)
 
                     if !insight.relatedHabits.isEmpty {
                         Text(insight.relatedHabits.joined(separator: " • "))
                             .font(.caption)
+                            .fontWeight(.medium)
                             .foregroundStyle(.secondary)
-                            .lineLimit(1)
                     }
+
+                    Spacer()
                 }
 
-                Spacer()
+                // Message content - supports multi-line GPT responses
+                Text(insight.message)
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineSpacing(4)
             }
             .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .shadow(color: .black.opacity(0.1), radius: 8, y: 4)

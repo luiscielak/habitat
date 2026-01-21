@@ -11,7 +11,7 @@ import SwiftUI
 ///
 /// This enum provides logical grouping of habits based on their health domain.
 /// Each category has associated display properties for UI consistency.
-enum HabitCategory: String, Codable, CaseIterable {
+enum HabitCategory: String, Codable, CaseIterable, Hashable {
     case nutrition
     case movement
     case sleep
@@ -62,13 +62,13 @@ enum HabitCategory: String, Codable, CaseIterable {
     /// Sort order for display (nutrition → movement → sleep → tracking)
     var sortOrder: Int {
         switch self {
-        case .tracking:
-            return 0
         case .nutrition:
-            return 1
+            return 0
         case .movement:
-            return 2
+            return 1
         case .sleep:
+            return 2
+        case .tracking:
             return 3
         }
     }

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habitat - Mid-Fi Wireframes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Device Frame Styles */
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            padding: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            border-radius: 32px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 30px;
+            background: #000;
+            border-radius: 0 0 20px 20px;
+            z-index: 10;
+        }
+        
+        .screen-content {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            color: #fff;
+            padding: 20px;
+            overflow-y: auto;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+        }
+        
+        /* Component Styles */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .card-selected {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .checkbox {
+            width: 28px;
+            height: 28px;
+            border: 1.5px solid rgba(255, 255, 255, 0.4);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+        }
+        
+        .checkbox.checked {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .checkbox.checked::after {
+            content: '✓';
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .time-chip {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 49px;
+            background: rgba(28, 28, 30, 0.9);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            padding: 4px;
+        }
+        
+        .tab-item.active {
+            color: #fff;
+        }
+        
+        .grid-container {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 20px 0;
+        }
+        
+        .grid-header {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+        
+        .grid-row {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+        
+        .grid-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-size: 18px;
+            min-height: 32px;
+        }
+        
+        .grid-cell.completed {
+            background: rgba(48, 209, 88, 0.15);
+            color: rgba(48, 209, 88, 0.8);
+        }
+        
+        .grid-cell.incomplete {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .grid-cell.current {
+            border: 2px solid rgba(255, 255, 255, 0.4);
+        }
+        
+        .completion-counter {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 9999px;
+            padding: 8px 16px;
+            display: inline-block;
+            font-size: 28px;
+            font-weight: 600;
+            margin: 24px auto;
+            text-align: center;
+        }
+        
+        .button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .button-primary {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Habitat - Mid-Fi Wireframes</h1>
+            <p class="text-gray-600">iOS habit tracking app - Component previews in device frames</p>
+        </header>
+        
+        <nav class="mb-8 flex gap-4">
+            <a href="#home" class="px-4 py-2 bg-blue-500 text-white rounded">Home View</a>
+            <a href="#daily" class="px-4 py-2 bg-blue-500 text-white rounded">Daily View</a>
+            <a href="#weekly" class="px-4 py-2 bg-blue-500 text-white rounded">Weekly View</a>
+            <a href="#time-picker" class="px-4 py-2 bg-blue-500 text-white rounded">Time Picker</a>
+        </nav>
+        
+        <section id="home" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Home View</h2>
+            <div class="flex justify-center">
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="phone-notch"></div>
+                        <div class="screen-content">
+                            <h3 class="text-xl font-semibold mb-4">Lock this in:</h3>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <span class="mr-3">📋</span>
+                                    <span class="text-base font-medium">Show my meals so far</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card card-selected">
+                                <div class="flex items-center">
+                                    <span class="mr-3">🏃</span>
+                                    <span class="text-base font-medium">Workout recap</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <span class="mr-3">🍄</span>
+                                    <span class="text-base font-medium">I'm hungry</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <span class="mr-3">📅</span>
+                                    <span class="text-base font-medium">Plan a meal</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <span class="mr-3">✨</span>
+                                    <span class="text-base font-medium">Quick sanity check</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <span class="mr-3">🌙</span>
+                                    <span class="text-base font-medium">Unwind</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 pt-6 border-t border-gray-700">
+                                <div class="card">
+                                    <p class="text-sm text-gray-300 mb-2">How intense?</p>
+                                    <div class="flex gap-2 mb-4">
+                                        <button class="button">Light</button>
+                                        <button class="button button-primary">Moderate</button>
+                                        <button class="button">Hard</button>
+                                    </div>
+                                    <p class="text-sm text-gray-300 mb-2">Type of workout?</p>
+                                    <div class="flex flex-wrap gap-2 mb-4">
+                                        <button class="button button-primary">Kettlebell</button>
+                                        <button class="button">Jump rope</button>
+                                        <button class="button">Run</button>
+                                        <button class="button">Yoga</button>
+                                    </div>
+                                    <button class="button-primary w-full mt-4">Add activity</button>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-bar">
+                                <div class="tab-item active">Home</div>
+                                <div class="tab-item">Daily</div>
+                                <div class="tab-item">Week</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="daily" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Daily View</h2>
+            <div class="flex justify-center">
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="phone-notch"></div>
+                        <div class="screen-content">
+                            <div class="flex items-center justify-between mb-6">
+                                <button class="text-white">←</button>
+                                <div class="text-center">
+                                    <div class="text-xl font-semibold">Monday, January 12, 2026</div>
+                                    <div class="text-sm text-gray-400">(Today)</div>
+                                </div>
+                                <button class="text-white">→</button>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox checked"></div>
+                                    <span class="text-base font-medium flex-grow">Weighed myself</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox checked"></div>
+                                    <span class="text-base font-medium flex-grow">Breakfast</span>
+                                    <span class="time-chip">10:30 AM</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox checked"></div>
+                                    <span class="text-base font-medium flex-grow">Lunch</span>
+                                    <span class="time-chip">3:30 PM</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox"></div>
+                                    <span class="text-base font-medium flex-grow">Pre-workout meal</span>
+                                    <span class="time-chip">6:00 PM</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox"></div>
+                                    <span class="text-base font-medium flex-grow">Dinner</span>
+                                    <span class="time-chip">9:00 PM</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox"></div>
+                                    <span class="text-base font-medium">Kitchen closed at 10 PM</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox checked"></div>
+                                    <span class="text-base font-medium">Tracked all meals</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox checked"></div>
+                                    <span class="text-base font-medium">Completed workout</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox"></div>
+                                    <span class="text-base font-medium">Slept in bed, not couch</span>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center mt-6">
+                                <div class="completion-counter">6/9</div>
+                            </div>
+                            
+                            <div class="text-center mt-4">
+                                <button class="button">Today</button>
+                            </div>
+                            
+                            <div class="tab-bar">
+                                <div class="tab-item">Home</div>
+                                <div class="tab-item active">Daily</div>
+                                <div class="tab-item">Week</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="weekly" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Weekly View</h2>
+            <div class="flex justify-center">
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="phone-notch"></div>
+                        <div class="screen-content">
+                            <div class="flex items-center justify-between mb-6">
+                                <button class="text-white">←</button>
+                                <div class="text-xl font-semibold text-center">Week of Jan 11-17, 2026</div>
+                                <button class="text-white">→</button>
+                            </div>
+                            
+                            <div class="grid-container">
+                                <div class="grid-header">
+                                    <div></div>
+                                    <div class="text-center text-sm font-medium text-gray-400">S</div>
+                                    <div class="text-center text-sm font-medium text-gray-400">M</div>
+                                    <div class="text-center text-sm font-medium text-gray-400">T</div>
+                                    <div class="text-center text-sm font-medium text-gray-400">W</div>
+                                    <div class="text-center text-sm font-medium text-gray-400">T</div>
+                                    <div class="text-center text-sm font-medium text-gray-400">F</div>
+                                    <div class="text-center text-sm font-medium text-gray-400">S</div>
+                                </div>
+                                
+                                <div class="grid-row">
+                                    <div class="text-sm font-medium">Weighed</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell incomplete">·</div>
+                                    <div class="grid-cell completed current">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell incomplete">·</div>
+                                </div>
+                                
+                                <div class="grid-row">
+                                    <div class="text-sm font-medium">Breakfast</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell incomplete">·</div>
+                                    <div class="grid-cell completed current">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell incomplete">·</div>
+                                </div>
+                                
+                                <div class="grid-row">
+                                    <div class="text-sm font-medium">Lunch</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed current">✓</div>
+                                    <div class="grid-cell incomplete">·</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                </div>
+                                
+                                <div class="grid-row">
+                                    <div class="text-sm font-medium">Pre-wk</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell incomplete current">·</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                </div>
+                                
+                                <div class="grid-row">
+                                    <div class="text-sm font-medium">Dinner</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell incomplete">·</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed current">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                </div>
+                                
+                                <div class="grid-row">
+                                    <div class="text-sm font-medium">Kitchen</div>
+                                    <div class="grid-cell incomplete">·</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed current">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                </div>
+                                
+                                <div class="grid-row">
+                                    <div class="text-sm font-medium">Tracked</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed current">✓</div>
+                                    <div class="grid-cell incomplete">·</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                </div>
+                                
+                                <div class="grid-row">
+                                    <div class="text-sm font-medium">Workout</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell incomplete current">·</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell incomplete">·</div>
+                                </div>
+                                
+                                <div class="grid-row">
+                                    <div class="text-sm font-medium">Bed</div>
+                                    <div class="grid-cell incomplete">·</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell completed current">✓</div>
+                                    <div class="grid-cell completed">✓</div>
+                                    <div class="grid-cell incomplete">·</div>
+                                    <div class="grid-cell completed">✓</div>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center mt-6">
+                                <div class="completion-counter">82%</div>
+                            </div>
+                            
+                            <div class="text-center mt-4">
+                                <button class="button">This Week</button>
+                            </div>
+                            
+                            <div class="tab-bar">
+                                <div class="tab-item">Home</div>
+                                <div class="tab-item">Daily</div>
+                                <div class="tab-item active">Week</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="time-picker" class="mb-16">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Time Picker Modal</h2>
+            <div class="flex justify-center">
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="phone-notch"></div>
+                        <div class="screen-content" style="background: rgba(0,0,0,0.5);">
+                            <div style="position: absolute; bottom: 0; left: 0; right: 0; background: #1C1C1E; border-radius: 12px 12px 0 0; padding: 16px;">
+                                <div class="text-xl font-semibold mb-4 text-center">Select Time</div>
+                                
+                                <div style="height: 200px; display: flex; align-items: center; justify-content: center; margin: 20px 0;">
+                                    <div style="display: flex; gap: 20px; font-size: 24px;">
+                                        <div style="text-align: center;">
+                                            <div style="font-weight: 600;">10</div>
+                                            <div style="font-size: 16px; color: rgba(255,255,255,0.6);">30</div>
+                                            <div style="font-size: 14px; color: rgba(255,255,255,0.5);">AM</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button class="button-primary w-full">Done</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <footer class="mt-16 pt-8 border-t border-gray-300">
+            <div class="text-center text-gray-600">
+                <p>Mid-Fi Wireframes for Habitat iOS App</p>
+                <p class="text-sm mt-2">Design tokens and components documented in tokens.md and components.md</p>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

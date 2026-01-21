@@ -1,0 +1,137 @@
+Focus Mode — Mobile (Design B: Radiant Focus)
+=============================================
+
++----------------------------------------+
+║                                        ║
+║  [S1] Header                           ║
+║                                        ║
+║  {×}                    3 of 9         ║
+║                                        ║
+║                 ⌄                      ║
+║          swipe down to exit            ║
+║                                        ║
++----------------------------------------+
+║                                        ║
+║                                        ║
+║                                        ║
+║  [S2] Habit Display                    ║
+║                                        ║
+║                                        ║
+║              +------+                  ║
+║             /   ~~~  \                 ║
+║            |   (O)    |  [A1]         ║
+║             \   ~~~  /                 ║
+║              +------+                  ║
+║                                        ║
+║                                        ║
+║             Lunch                      ║
+║                                        ║
+║         [Time: 3:30 PM]                ║
+║                                        ║
+║                                        ║
+║                                        ║
++----------------------------------------+
+║                                        ║
+║  [S3] Navigation Indicators            ║
+║                                        ║
+║      ⟨                        ⟩        ║
+║                                        ║
+║         ○ ○ ● ○ ○ ○ ○ ○ ○              ║
+║                                        ║
+║  [A2] Swipe left/right to navigate     ║
+║                                        ║
++----------------------------------------+
+
+Annotations:
+-----------
+A1: Large checkbox (64×64pt visual, 88pt touch target)
+    Gradient border when unchecked
+    Gradient fill + checkmark when checked
+    Scale animation on toggle (1.0 → 1.2 → 1.0)
+
+A2: Dot indicators show position in habit sequence
+    Current habit highlighted with gradient dot
+    Swipe gestures navigate between habits
+
+A3: Time input appears only for meal habits
+    Tapping opens native iOS time picker
+
+A4: "×" button exits to Dashboard
+    Swipe down also exits (gesture alternative)
+
+States:
+-------
++----------------------------------------+
+║  UNCHECKED STATE                       ║
+║                                        ║
+║              +------+                  ║
+║             / ~~~~~ \                  ║
+║            |  (O)    |  Gradient      ║
+║             \ ~~~~~ /   border        ║
+║              +------+                  ║
+║                                        ║
+║             Lunch                      ║
+║         [Time: 3:30 PM]                ║
+║                                        ║
++----------------------------------------+
+
++----------------------------------------+
+║  CHECKED STATE ✨                      ║
+║                                        ║
+║              +------+                  ║
+║             /~~~~~~~~\                 ║
+║            |  (●)     |  Gradient     ║
+║             \~~~~~~~~/   fill + glow  ║
+║              +------+                  ║
+║                                        ║
+║            ✓ Lunch                     ║
+║           3:30 PM                      ║
+║                                        ║
+║  [A5] Confetti particles (subtle)      ║
+║  [A6] Auto-advance after 500ms         ║
+║                                        ║
++----------------------------------------+
+
++----------------------------------------+
+║  LAST HABIT COMPLETE (9/9) ✨          ║
+║                                        ║
+║           ✨ ✨ ✨ ✨ ✨                  ║
+║         ✨           ✨                 ║
+║       ✨               ✨               ║
+║              +------+                  ║
+║             /~~~~~~~~\                 ║
+║            |  (●)     |               ║
+║             \~~~~~~~~/                 ║
+║              +------+                  ║
+║       ✨               ✨               ║
+║         ✨           ✨                 ║
+║           ✨ ✨ ✨ ✨ ✨                  ║
+║                                        ║
+║         Perfect Day!                   ║
+║                                        ║
+║  [~~~Button: Back to Home~~~]          ║
+║                                        ║
++----------------------------------------+
+
+Gestures:
+---------
+- Tap checkbox: Toggle completion state
+- Swipe left: Next habit
+- Swipe right: Previous habit
+- Swipe down: Exit to Dashboard
+- Tap "×": Exit to Dashboard
+- Tap time: Open time picker
+
+Flow Hooks:
+-----------
+- Complete last habit → Perfect Day celebration
+- Tap "Back to Home" → Dashboard
+- Swipe past last habit → Dashboard
+- Exit → Dashboard (maintains state)
+
+Related FRs:
+-----------
+- FR-1: Daily Habit Tracking
+- FR-5: Date Navigation
+- FR-B1: Focus Mode Navigation
+- FR-B3: Celebration Animations

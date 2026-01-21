@@ -1,0 +1,169 @@
+Coaching Experience — Mobile (Design B: Radiant Focus)
+======================================================
+
++----------------------------------------+
+|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+|~~~~~ [S1] Gradient Background ~~~~~~~~~|
+|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+|                                        |
+|  {×}                           ⌄       |
+|                          swipe to close|
+|                                        |
+|  [S2] Action Icon                      |
+|                                        |
+|              +------+                  |
+|             /        \                 |
+|            |   [*]    |  Large icon   |
+|             \        /   (48pt)       |
+|              +------+                  |
+|                                        |
+|         I'm hungry                     |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [S3] Context Summary                  |
+|                                        |
+|  /================================\    |
+|  |  Today so far                  |    |
+|  |                                |    |
+|  |  Breakfast: 450 kcal, 25g P    |    |
+|  |  Lunch: 380 kcal, 30g P        |    |
+|  |  Total: 830 kcal, 55g P        |    |
+|  |                                |    |
+|  |  Remaining: ~770 kcal, 95g P   |    |
+|  |           [Expand ▼]           |    |
+|  \================================/    |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [S4] Quick Filters                    |
+|                                        |
+|  [Vegetarian] [High Protein*] [Low Carb]|
+|                                        |
++----------------------------------------+
+|                                        |
+|  [S5] Notes Input                      |
+|                                        |
+|  [Input: Anything to factor in?____]   |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [~~~Button: Get Recommendation~~~]    |
+|                                        |
++----------------------------------------+
+
+Coaching Response State:
+========================
+
++----------------------------------------+
+|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+|~~~~~ Gradient Background ~~~~~~~~~~~~~~|
+|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
+|                                        |
+|  {×}                                   |
+|                                        |
+|              +------+                  |
+|             /   ✓   \                  |
+|            |   [*]    |               |
+|             \        /                 |
+|              +------+                  |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [S6] Recommendation Card              |
+|                                        |
+|  /================================\    |
+|  |  Based on your intake, try:    |    |
+|  |                                |    |
+|  |  1. Greek yogurt parfait       |    |
+|  |     ~200 kcal, 20g protein     |    |
+|  |                                |    |
+|  |  2. Chicken salad wrap         |    |
+|  |     ~350 kcal, 35g protein     |    |
+|  |                                |    |
+|  |  3. Protein shake + banana     |    |
+|  |     ~280 kcal, 30g protein     |    |
+|  |                                |    |
+|  |  [A1] Recommendations are       |    |
+|  |  actionable and specific        |    |
+|  \================================/    |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [~~~Button: Try Another~~~]           |
+|                                        |
+|  <Button: Done>                        |
+|                                        |
++----------------------------------------+
+
+Action Variants:
+================
+
+[Show my meals so far]
+- Context: Full meal log display
+- Input: None (display only)
+- Output: Detailed meal list with macros
+
+[Workout recap]
+- Context: Today's activity summary
+- Input: Intensity, type, duration, notes
+- Output: Recovery meal recommendations
+
+[I'm hungry]
+- Context: Current intake summary
+- Input: Filters, notes
+- Output: Meal recommendations
+
+[Plan a meal]
+- Context: Remaining macros
+- Input: Eating out / For week / For today
+- Output: Meal plan with options
+
+[Quick sanity check]
+- Context: Full day summary
+- Input: Check type (Nutrition/Fitness/General)
+- Output: Status assessment + suggestions
+
+[Unwind]
+- Context: Day completion status
+- Input: Anything since dinner?
+- Output: Day closure + next day prep
+
+Annotations:
+-----------
+A1: Recommendations are numbered and specific
+    Each includes calorie and protein estimates
+    Ordered by relevance to current intake
+
+A2: Context card is collapsible to save space
+    Shows expanded by default, can minimize
+
+A3: Quick filters are multi-select chips
+    Gradient border when selected
+
+A4: Gradient button is full-width, prominent
+    Loading state shows spinner + "Thinking..."
+
+A5: "×" dismisses entire coaching flow
+    Returns to Dashboard
+
+Gestures:
+---------
+- Swipe down: Dismiss coaching
+- Tap "×": Dismiss coaching
+- Tap filter: Toggle selection
+- Tap expand: Show/hide context details
+
+Flow Hooks:
+-----------
+- Submit → Loading → Response
+- "Try Another" → New request with same context
+- "Done" → Dashboard
+- Dismiss → Dashboard (maintains last state)
+
+Related FRs:
+-----------
+- FR-3: Home Screen with Coaching Actions
+- FR-4: Meal Logging with Attachments
+- FR-4.1: GPT-Powered Recommendation Coaching
+- FR-B4: Immersive Coaching

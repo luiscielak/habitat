@@ -20,32 +20,95 @@ import PhotosUI
 /// - Clean, minimal design for sheet presentation
 struct NutritionLogRow: View {
     @Binding var meal: NutritionMeal
+    /// When true, hide the meal label header (e.g. when used in a sheet that has its own title).
+    var hideLabel: Bool = false
+    /// When true, auto-focus the text input on appear
+    var autoFocus: Bool = false
 
     @State private var textInput: String = ""
     @State private var urlInput: String = ""
     @State private var showAllMacros: Bool = false
     @State private var showingImagePicker: Bool = false
 
-    // MARK: - Colors
-    private let violetAccent = Color(red: 0.753, green: 0.518, blue: 0.988) // #C084FC
-    private let magentaAccent = Color(red: 0.925, green: 0.282, blue: 0.6)  // #EC4899
+    // Direct macro input state
+    @State private var showMacroInput: Bool = false
+    @State private var caloriesText: String = ""
+    @State private var proteinText: String = ""
+    @State private var carbsText: String = ""
+    @State private var fatText: String = ""
+
+    @FocusState private var focusedField: NutritionField?
+
+    enum NutritionField {
+        case text, url, calories, protein, carbs, fat
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // Header with meal label
-            Text(meal.label)
-                .font(.title2)
-                .fontWeight(.semibold)
-                .foregroundStyle(.primary)
-            
-            // Macro chips (if available)
+            // Header with meal label (hidden when hideLabel, e.g. in CoachingInputSheet)
+            if !hideLabel {
+                Text(meal.label)
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+            }
+            // Macro display or input section
             if let macros = meal.extractedMacros, macros.hasAnyData {
+                // Show current macros with edit option
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Extracted Macros")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    
-                    macroChips(showAll: true)
+                    HStack {
+                        Text("Macros")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        Button(action: {
+                            loadMacrosToInput()
+                            showMacroInput.toggle()
+                        }) {
+                            Text(showMacroInput ? "Done" : "Edit")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Theme.violet)
+                        }
+                    }
+
+                    if showMacroInput {
+                        macroInputFields
+                    } else {
+                        macroChips(showAll: true)
+                    }
+                }
+            } else {
+                // No macros yet - show add button or input fields
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Macros")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        if !showMacroInput {
+                            Button(action: { showMacroInput = true }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 12, weight: .semibold))
+                                    Text("Add")
+                                        .font(.system(size: 13, weight: .medium))
+                                }
+                                .foregroundStyle(Theme.violet)
+                            }
+                        }
+                    }
+
+                    if showMacroInput {
+                        macroInputFields
+                    } else {
+                        Text("No macros logged")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.tertiary)
+                    }
                 }
             }
             
@@ -60,13 +123,13 @@ struct NutritionLogRow: View {
                 attachmentButton(
                     icon: "text.quote",
                     label: "Add Text",
-                    action: { /* Focus on text field */ }
+                    action: { focusedField = .text }
                 )
 
                 attachmentButton(
                     icon: "link",
                     label: "Add URL",
-                    action: { /* Focus on URL field */ }
+                    action: { focusedField = .url }
                 )
             }
 
@@ -77,7 +140,8 @@ struct NutritionLogRow: View {
                     .foregroundStyle(.secondary)
 
                 TextField("e.g., 450 kcal, 25g protein, 30g carbs, 15g fat", text: $textInput)
-                    .textFieldStyle(CustomTextFieldStyle(accentColor: magentaAccent))
+                    .textFieldStyle(CustomTextFieldStyle(accentColor: Theme.magenta))
+                    .focused($focusedField, equals: .text)
                     .onSubmit {
                         if !textInput.isEmpty {
                             addTextAttachment(textInput)
@@ -93,9 +157,10 @@ struct NutritionLogRow: View {
                     .foregroundStyle(.secondary)
 
                 TextField("Paste URL here", text: $urlInput)
-                    .textFieldStyle(CustomTextFieldStyle(accentColor: magentaAccent))
+                    .textFieldStyle(CustomTextFieldStyle(accentColor: Theme.magenta))
                     .autocapitalization(.none)
                     .keyboardType(.URL)
+                    .focused($focusedField, equals: .url)
                     .onSubmit {
                         if !urlInput.isEmpty, let url = URL(string: urlInput) {
                             addURLAttachment(url)
@@ -114,6 +179,13 @@ struct NutritionLogRow: View {
                 addImageAttachment(image)
             })
         }
+        .onAppear {
+            if autoFocus {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    focusedField = .text
+                }
+            }
+        }
     }
 
     // MARK: - Content Views
@@ -126,12 +198,12 @@ struct NutritionLogRow: View {
                 Text(label)
                     .font(.system(size: 14, weight: .medium))
             }
-            .foregroundColor(violetAccent)
+            .foregroundColor(Theme.violet)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(violetAccent.opacity(0.15))
+                    .fill(Theme.violet.opacity(0.15))
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -205,6 +277,96 @@ struct NutritionLogRow: View {
         case .url(let url):
             return url.absoluteString
         }
+    }
+
+    // MARK: - Macro Input
+
+    private var macroInputFields: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                macroInputField(label: "Calories", text: $caloriesText, placeholder: "0", unit: "kcal")
+                macroInputField(label: "Protein", text: $proteinText, placeholder: "0", unit: "g")
+            }
+
+            HStack(spacing: 12) {
+                macroInputField(label: "Carbs", text: $carbsText, placeholder: "0", unit: "g")
+                macroInputField(label: "Fat", text: $fatText, placeholder: "0", unit: "g")
+            }
+
+            // Save button
+            Button(action: saveMacros) {
+                Text("Save Macros")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Theme.violet)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+        }
+    }
+
+    private func macroInputField(label: String, text: Binding<String>, placeholder: String, unit: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 4) {
+                TextField(placeholder, text: text)
+                    .keyboardType(.numberPad)
+                    .font(.system(size: 16, weight: .medium))
+
+                Text(unit)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.white.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+            )
+        }
+    }
+
+    private func loadMacrosToInput() {
+        guard let macros = meal.extractedMacros else { return }
+        if let cal = macros.calories { caloriesText = String(Int(cal)) }
+        if let p = macros.protein { proteinText = String(Int(p)) }
+        if let c = macros.carbs { carbsText = String(Int(c)) }
+        if let f = macros.fat { fatText = String(Int(f)) }
+    }
+
+    private func saveMacros() {
+        let cal = Double(caloriesText)
+        let protein = Double(proteinText)
+        let carbs = Double(carbsText)
+        let fat = Double(fatText)
+
+        // Only update if at least one value exists
+        if cal != nil || protein != nil || carbs != nil || fat != nil {
+            var updatedMeal = meal
+            updatedMeal.extractedMacros = MacroInfo(
+                calories: cal,
+                protein: protein,
+                carbs: carbs,
+                fat: fat
+            )
+            meal = updatedMeal
+        }
+
+        // Collapse after saving
+        withAnimation {
+            showMacroInput = false
+        }
+
+        // Haptic feedback
+        let impact = UIImpactFeedbackGenerator(style: .light)
+        impact.impactOccurred()
     }
 
     // MARK: - Macro Chips
@@ -343,7 +505,7 @@ struct ImagePickerPlaceholder: View {
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(Color(red: 0.753, green: 0.518, blue: 0.988))
+                .tint(Theme.violet)
             }
             .navigationTitle("Select Image")
             .navigationBarTitleDisplayMode(.inline)

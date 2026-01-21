@@ -1,0 +1,105 @@
+Dashboard View — Mobile (Design B: Radiant Focus)
+================================================
+
++----------------------------------------+
+|                                        |
+|  [S1] Header                           |
+|  Good morning, Luis                    |
+|  Monday, January 13, 2026              |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [S2] Progress Ring                    |
+|                                        |
+|           ●━━━━━━━━━○                  |
+|          /           \                 |
+|         |    6/9      |               |
+|         |   habits    |               |
+|          \           /                 |
+|           ○━━━━━━━━━○                  |
+|                                        |
+|     [A1] Tap to enter Focus Mode       |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [S3] Quick Actions                    |
+|                                        |
+|  [~~~Button: Continue~~~]  <View All>  |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [S4] Habit Groups                     |
+|                                        |
+|  /================================\    |
+|  |  [*] Nutrition          5/6   |    |
+|  |  ●●●●●○                       |    |
+|  |  Next: Dinner (9:00 PM)       |    |
+|  \================================/    |
+|                                        |
+|  /================================\    |
+|  |  [*] Movement           0/1   |    |
+|  |  ○                            |    |
+|  |  Completed workout            |    |
+|  \================================/    |
+|                                        |
+|  /================================\    |
+|  |  [*] Recovery           1/2   |    |
+|  |  ●○                           |    |
+|  |  Next: Sleep in bed           |    |
+|  \================================/    |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [S5] Coaching CTA                     |
+|                                        |
+|  [~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]    |
+|  |  [*] Need guidance?           |    |
+|  |  Get personalized coaching    |    |
+|  |  [~~~Button: Ask Coach~~~]    |    |
+|  [~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]    |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [TAB: Home*] [TAB: Daily] [TAB: Week] |
+|                                        |
++----------------------------------------+
+
+Annotations:
+-----------
+A1: Progress ring is interactive - tap to launch Focus Mode
+    Ring stroke uses gradient (purple → pink)
+    Center shows completion count with large typography
+
+A2: "Continue" button is gradient-filled, launches Focus Mode
+    starting at first incomplete habit
+
+A3: Habit group cards show category summary
+    Dot indicators show completion status per habit
+    "Next" shows the first incomplete habit in group
+
+A4: Coaching CTA uses glass/blur background
+    Gradient button for primary action
+
+States:
+-------
+- Empty (0/9): Ring empty, all dots gray, "Start your day" CTA
+- Partial (6/9): Ring partial fill, mixed dots
+- Complete (9/9): Ring full + glow, "Perfect Day!" celebration ✨
+- Loading: Skeleton loaders for ring and cards
+
+Flow Hooks:
+-----------
+- Tap Progress Ring → Focus Mode (first habit)
+- Tap "Continue" → Focus Mode (first incomplete)
+- Tap Group Card → Expanded group detail
+- Tap "View All" → Daily View (list mode)
+- Tap "Ask Coach" → Coaching Experience
+- Tab: Daily → Focus Mode
+- Tab: Week → Weekly View
+
+Related FRs:
+-----------
+- FR-1: Daily Habit Tracking
+- FR-2.1: Core Tracking Functionality
+- FR-3: Home Screen with Coaching Actions
+- FR-B2: Progress Ring

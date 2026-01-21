@@ -1,0 +1,64 @@
+Home View — Mobile
+
++------------------------------------------+
+|                                          |
+|  Lock this in:                          |
+|                                          |
+|  +----------------------------------+    |
+|  | [*] Show my meals so far        |    |
+|  +----------------------------------+    |
+|                                          |
+|  +----------------------------------+    |
+|  | [*] Workout recap                |    |
+|  +----------------------------------+    |
+|                                          |
+|  +----------------------------------+    |
+|  | 🍄 I'm hungry                    |    |
+|  +----------------------------------+    |
+|                                          |
+|  +----------------------------------+    |
+|  | [*] Plan a meal                  |    |
+|  +----------------------------------+    |
+|                                          |
+|  +----------------------------------+    |
+|  | [*] Quick sanity check           |    |
+|  +----------------------------------+    |
+|                                          |
+|  +----------------------------------+    |
+|  | [*] Unwind                        |    |
+|  +----------------------------------+    |
+|                                          |
+|  [S1: Action Cards Section]              |
+|                                          |
+|  ---                                     |
+|                                          |
+|  [S2: Inline Form Section]               |
+|  (Appears when action is selected)      |
+|                                          |
+|  ---                                     |
+|                                          |
+|  [S3: Insight Card Section]              |
+|  (Shows coaching response)              |
+|                                          |
++------------------------------------------+
+|  [Tab: Home]  [Tab: Daily]  [Tab: Week]|
++------------------------------------------+
+
+Annotations:
+A1: Action cards are tappable, minimum 44pt height
+A2: Selected action card has visual highlight (background change)
+A3: Inline form appears below action cards when action is tapped
+A4: Forms can be dismissed by tapping action card again
+A5: Insight card displays coaching response after form submission
+A6: Empty state: No insight card shown until action is completed
+A7: Loading state: Progress indicator while coaching response generates
+
+Flow Hooks:
+→ Daily View (via tab bar)
+→ Weekly View (via tab bar)
+↑ Tap action card → Show inline form
+↑ Submit form → Show insight card
+
+Related FRs:
+- FR-3: Home Screen with Coaching Actions
+- FR-4.1: GPT-Powered Recommendation Coaching (Phase 2)

@@ -12,6 +12,11 @@ import Foundation
 struct MacroParser {
 
     /// Extracts macro information from the given text.
+    ///
+    /// Priority:
+    /// 1. Explicit macros (e.g., "450 kcal, 25g protein")
+    /// 2. Food estimation (e.g., "chicken and rice")
+    ///
     /// Looks for patterns like:
     /// - "450 kcal", "450 calories", "450cal"
     /// - "25g protein", "25 g p", "protein: 25g"
@@ -25,17 +30,18 @@ struct MacroParser {
         let carbs = extractCarbs(from: lowercased)
         let fat = extractFat(from: lowercased)
 
-        // Only return MacroInfo if at least one value was found
-        guard calories != nil || protein != nil || carbs != nil || fat != nil else {
-            return nil
+        // If explicit macros found, return them
+        if calories != nil || protein != nil || carbs != nil || fat != nil {
+            return MacroInfo(
+                calories: calories,
+                protein: protein,
+                carbs: carbs,
+                fat: fat
+            )
         }
 
-        return MacroInfo(
-            calories: calories,
-            protein: protein,
-            carbs: carbs,
-            fat: fat
-        )
+        // Fallback: try to estimate from food names
+        return MacroEstimator.estimate(from: text)
     }
 
     /// Extracts macro information from multiple attachments.

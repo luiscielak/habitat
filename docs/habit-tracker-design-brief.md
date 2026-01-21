@@ -151,6 +151,82 @@ habitTimes: {
 - JSON export (for backup/migration)
 - Share weekly summary (text/image)
 
+### 3.4 Core Tracking Functionality
+
+**Daily Completion Tracking:**
+- Completion counter displays current progress (e.g., "6/9 completed")
+- Real-time updates as habits are checked/unchecked
+- Visual indicators clearly show completion status
+- Completion percentage calculated automatically
+
+**Weekly Pattern Visualization:**
+- Heat map grid showing completion patterns across 7 days
+- Weekly completion percentage displayed prominently
+- Visual pattern recognition enables quick identification of problem days/habits
+- Easy to spot consistency gaps and trends
+
+**Basic Progress Metrics:**
+- Daily completion rates visible at a glance
+- Weekly summaries show overall progress
+- Visual feedback reinforces positive behavior
+- Simple, clear metrics without overwhelming detail
+
+**Note:** Advanced analytics (streak tracking, detailed pattern detection, heat map intensity calculations) are out of scope for MVP. Focus is on core tracking visibility and basic progress metrics.
+
+### 3.5 GPT-Powered Coaching System
+
+**Overview:**
+The app includes a recommendation coaching system that provides personalized nutrition and habit guidance. Currently implemented with mock responses for MVP, with GPT API integration planned for Phase 2.
+
+**Coaching Actions (6 Total):**
+1. **Show my meals so far** - Review logged meals and get next meal recommendations
+2. **Workout recap** - Log workout details and get recovery meal guidance
+3. **I'm hungry** - Get personalized meal recommendations based on current intake
+4. **Plan a meal** - Meal prep planning (eating out, for the week, for today)
+5. **Quick sanity check** - Review daily progress and get validation
+6. **Unwind** - End-of-day guidance for closing the loop
+
+**Current State (MVP):**
+- Mock responses provide placeholder coaching feedback
+- Inline forms capture user input for each action
+- InsightCard displays coaching responses
+- All functionality works offline without API dependency
+
+**Future Integration (Phase 2):**
+- GPT API connection using system prompt from `GPTCoachInstructions.swift`
+- Context building from:
+  - Today's meal summaries and macro intake
+  - Habit completion status
+  - Workout data (if logged)
+  - User's coaching input
+- Personalized recommendations based on:
+  - Current macro consumption
+  - Training status and intensity
+  - Time of day and meal timing
+  - User goals (sustainable fat loss, muscle preservation)
+
+**Coaching Workflow:**
+1. User selects coaching action from Home screen
+2. User fills out inline form with relevant details
+3. System builds context from habit data and meal logs
+4. GPT API call with system prompt and user context
+5. Response parsed and displayed in InsightCard
+6. User receives actionable, personalized recommendations
+
+**Decision Priority Stack (from GPT instructions):**
+When tradeoffs arise, the coaching system prioritizes:
+1. Recovery and sleep
+2. Habit integrity and containment
+3. Protein adequacy
+4. Calorie control
+5. Macro precision
+
+**Operating Targets:**
+- Training days: 1,600–1,800 kcal
+- Rest days: 1,400–1,600 kcal
+- Protein floor: 140g
+- Protein sweet spot: 150–160g
+
 ---
 
 ## 4. TECHNICAL REQUIREMENTS
@@ -492,6 +568,9 @@ Use Apple's dynamic system colors for consistency:
 - Daily view with 9 habits (4 with time inputs, 5 checkboxes)
 - Weekly grid view
 - Day navigation (prev/next, jump to today)
+- Core tracking functionality (completion counter, weekly percentage, visual patterns)
+- Home screen with coaching actions (mock responses)
+- Meal logging with attachments
 - Local data persistence
 - Dark mode
 - Basic animations
@@ -512,10 +591,15 @@ Use Apple's dynamic system colors for consistency:
 - Apple Watch app
 
 ### Future Enhancements (Phase 2) - If Needed
+- GPT API integration for coaching system
+  - Connect to OpenAI GPT API or Custom GPT
+  - Implement context building service
+  - Parse and format GPT responses
+  - Error handling and fallback to mock responses
 - iCloud backup
 - CSV export
 - Monthly view
-- Streak tracking
+- Advanced analytics (streaks, pattern detection)
 - Home screen widgets
 - Siri Shortcuts
 - Apple Watch complication

@@ -1,0 +1,57 @@
+Weekly View — Mobile
+
++------------------------------------------+
+|  ←  Week of Jan 11-17, 2026  →          |
+|                                          |
+|  [S1: Week Navigation]                  |
+|                                          |
+|  +----------------------------------+    |
+|  |      S  M  T  W  T  F  S        |    |
+|  |                                |    |
+|  | Weighed    ✓  ✓  ·  ✓  ✓  ✓  ·  |    |
+|  | Breakfast  ✓  ✓  ·  ✓  ✓  ✓  ·  |    |
+|  | Lunch      ✓  ✓  ✓  ✓  ·  ✓  ✓  |    |
+|  | Pre-wk     ✓  ✓  ✓  ·  ✓  ✓  ✓  |    |
+|  | Dinner     ✓  ·  ✓  ✓  ✓  ✓  ✓  |    |
+|  | Kitchen    ·  ✓  ✓  ✓  ✓  ✓  ✓  |    |
+|  | Tracked    ✓  ✓  ✓  ✓  ·  ✓  ✓  |    |
+|  | Workout    ✓  ✓  ✓  ·  ✓  ✓  ·  |    |
+|  | Bed        ·  ✓  ✓  ✓  ✓  ·  ✓  |    |
+|  |                                |    |
+|  +----------------------------------+    |
+|                                          |
+|  [S2: Weekly Grid]                       |
+|                                          |
+|        +----------+                      |
+|        |   82%    |                      |
+|        +----------+                      |
+|                                          |
+|  [S3: Completion Percentage]             |
+|                                          |
+|  [Button: This Week]                     |
+|                                          |
++------------------------------------------+
+|  [Tab: Home]  [Tab: Daily]  [Tab: Week]|
++------------------------------------------+
+
+Annotations:
+A1: Week header shows date range, previous/next arrows for week navigation
+A2: Grid shows 7 days (Sunday-Saturday) as columns
+A3: All 9 habits listed as rows
+A4: ✓ indicates completed habit, · indicates incomplete
+A5: Current day is visually highlighted (bold border or background)
+A6: Weekly completion percentage calculated from all habits
+A7: "This Week" button returns to current week
+A8: Empty state: All cells show · (no data for week)
+A9: Tap on any day/habit cell → Navigate to Daily View for that day
+A10: Grid scrollable if needed (landscape or smaller screens)
+
+Flow Hooks:
+→ Daily View (tap on grid cell or via tab bar)
+→ Home View (via tab bar)
+↑ Tap day/habit cell → Navigate to Daily View for that date
+↑ Tap "This Week" → Jump to current week
+
+Related FRs:
+- FR-2: Weekly Pattern View
+- FR-2.1: Core Tracking Functionality

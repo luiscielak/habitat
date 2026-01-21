@@ -1,0 +1,82 @@
+Daily View — Mobile
+
++------------------------------------------+
+|  ←  Monday, January 12, 2026  →        |
+|          (Today)                         |
+|                                          |
+|  [S1: Date Navigation]                   |
+|                                          |
+|  +----------------------------------+    |
+|  | [x] Weighed myself               |    |
+|  +----------------------------------+    |
+|                                          |
+|  +----------------------------------+    |
+|  | [x] Breakfast        10:30 AM   |    |
+|  +----------------------------------+    |
+|                                          |
+|  +----------------------------------+    |
+|  | [x] Lunch            3:30 PM    |    |
+|  +----------------------------------+    |
+|                                          |
+|  +----------------------------------+    |
+|  | [ ] Pre-workout meal  6:00 PM    |    |
+|  +----------------------------------+    |
+|                                          |
+|  +----------------------------------+    |
+|  | [ ] Dinner           9:00 PM    |    |
+|  +----------------------------------+    |
+|                                          |
+|  +----------------------------------+    |
+|  | [ ] Kitchen closed at 10 PM      |    |
+|  +----------------------------------+    |
+|                                          |
+|  +----------------------------------+    |
+|  | [x] Tracked all meals            |    |
+|  +----------------------------------+    |
+|                                          |
+|  +----------------------------------+    |
+|  | [x] Completed workout            |    |
+|  +----------------------------------+    |
+|                                          |
+|  +----------------------------------+    |
+|  | [ ] Slept in bed, not couch      |    |
+|  +----------------------------------+    |
+|                                          |
+|  [S2: Habit List]                        |
+|                                          |
+|        +----------+                      |
+|        |  6/9     |                      |
+|        +----------+                      |
+|                                          |
+|  [S3: Completion Counter]                |
+|                                          |
+|  [Button: Today]                        |
+|                                          |
++------------------------------------------+
+|  [Tab: Home]  [Tab: Daily]  [Tab: Week]|
++------------------------------------------+
+
+Annotations:
+A1: Date header shows current date, previous/next arrows for navigation
+A2: "(Today)" indicator shown when viewing current date
+A3: Checkboxes toggle on tap with haptic feedback
+A4: Time inputs (10:30 AM) are tappable, open time picker sheet
+A5: Pre-workout meal only appears on workout days (conditional)
+A6: Completion counter updates in real-time (6/9 completed)
+A7: "Today" button jumps to current date
+A8: Empty state: All checkboxes unchecked, counter shows 0/9
+A9: Full completion: All checkboxes checked, counter shows 9/9
+A10: Past day view: Same layout, shows historical completion state
+
+Flow Hooks:
+→ Weekly View (via tab bar)
+→ Home View (via tab bar)
+→ Time Picker Modal (tap time input)
+↑ Tap checkbox → Toggle completion, update counter
+↑ Tap time → Open time picker sheet
+↑ Tap "Today" → Jump to current date
+
+Related FRs:
+- FR-1: Daily Habit Tracking
+- FR-2.1: Core Tracking Functionality
+- FR-5: Date Navigation

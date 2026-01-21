@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Habitat — Current Implementation Mobile UI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+      --violet: #C084FC;
+      --magenta: #EC4899;
+      --gradient-brand: linear-gradient(135deg, #C084FC 0%, #EC4899 100%);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #000000;
+    }
+
+    .gradient-text {
+      background: var(--gradient-brand);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .gradient-bg {
+      background: var(--gradient-brand);
+    }
+
+    .ultra-thin-material {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .device-frame {
+      width: 375px;
+      height: 812px;
+      background: #1a1a1a;
+      border-radius: 50px;
+      padding: 14px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      flex-shrink: 0;
+    }
+
+    .device-screen {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .dynamic-island {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 126px;
+      height: 37px;
+      background: #000;
+      border-radius: 24px;
+      z-index: 10;
+    }
+
+    .home-indicator {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 134px;
+      height: 5px;
+      background: #fff;
+      border-radius: 3px;
+      opacity: 0.3;
+    }
+
+    .screen-content {
+      padding: 60px 16px 100px;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    .screens-container {
+      display: flex;
+      gap: 48px;
+      overflow-x: auto;
+      padding: 48px;
+      scroll-snap-type: x mandatory;
+    }
+
+    .screen-wrapper {
+      scroll-snap-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .screen-label {
+      color: rgba(255,255,255,0.6);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .tab-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 88px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding-bottom: 20px;
+    }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 11px;
+    }
+
+    .tab-item.active {
+      color: var(--violet);
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header -->
+  <header class="p-8 border-b border-white/10">
+    <h1 class="text-3xl font-bold text-white mb-2">Habitat — Current Implementation</h1>
+    <p class="text-white/60">Mobile UI Designs • Scroll horizontally to view all screens</p>
+  </header>
+
+  <!-- Screens Container -->
+  <div class="screens-container">
+
+    <!-- Screen 1: Home View -->
+    <div class="screen-wrapper">
+      <span class="screen-label">Home Screen</span>
+      <div class="device-frame">
+        <div class="device-screen">
+          <div class="dynamic-island"></div>
+          <div class="screen-content flex flex-col">
+            
+            <!-- Header -->
+            <div class="mb-6">
+              <h2 class="text-2xl font-semibold text-white mb-1">Lock this in:</h2>
+            </div>
+
+            <!-- Action Cards -->
+            <div class="space-y-3 mb-6">
+              <div class="ultra-thin-material rounded-xl p-4">
+                <div class="flex items-center gap-3">
+                  <span class="text-xl">🍽</span>
+                  <span class="text-white flex-1">I've eaten</span>
+                  <svg class="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="ultra-thin-material rounded-xl p-4">
+                <div class="flex items-center gap-3">
+                  <span class="text-xl">🏋️</span>
+                  <span class="text-white flex-1">I've trained</span>
+                  <svg class="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="ultra-thin-material rounded-xl p-4">
+                <div class="flex items-center gap-3">
+                  <span class="text-xl">🍄</span>
+                  <span class="text-white flex-1">I'm hungry</span>
+                  <svg class="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="ultra-thin-material rounded-xl p-4">
+                <div class="flex items-center gap-3">
+                  <span class="text-xl">📋</span>
+                  <span class="text-white flex-1">Meal prep</span>
+                  <svg class="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="ultra-thin-material rounded-xl p-4">
+                <div class="flex items-center gap-3">
+                  <span class="text-xl">🔒</span>
+                  <span class="text-white flex-1">Close the loop</span>
+                  <svg class="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="ultra-thin-material rounded-xl p-4">
+                <div class="flex items-center gap-3">
+                  <span class="text-xl">✓</span>
+                  <span class="text-white flex-1">Sanity check</span>
+                  <svg class="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Insight Card Placeholder -->
+            <div class="ultra-thin-material rounded-2xl p-4">
+              <p class="text-white/40 text-sm">Tap an action above for coaching</p>
+            </div>
+
+          </div>
+          <div class="tab-bar">
+            <div class="tab-item active">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+              </svg>
+              <span>Home</span>
+            </div>
+            <div class="tab-item">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/>
+              </svg>
+              <span>Daily</span>
+            </div>
+            <div class="tab-item">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+              </svg>
+              <span>Weekly</span>
+            </div>
+          </div>
+          <div class="home-indicator"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 2: Daily View -->
+    <div class="screen-wrapper">
+      <span class="screen-label">Daily View</span>
+      <div class="device-frame">
+        <div class="device-screen">
+          <div class="dynamic-island"></div>
+          <div class="screen-content flex flex-col">
+            
+            <!-- Date Navigation -->
+            <div class="flex items-center justify-between mb-4">
+              <button class="w-9 h-9 flex items-center justify-center text-white">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <button class="px-3 py-1.5 ultra-thin-material rounded-full text-white text-sm font-medium">
+                Today
+              </button>
+              <button class="w-9 h-9 flex items-center justify-center text-white">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Date Header -->
+            <div class="mb-6">
+              <h2 class="text-2xl font-semibold text-white">Sunday, January 19</h2>
+            </div>
+
+            <!-- Habit Group Sections -->
+            <div class="space-y-3">
+              <!-- Nutrition Section -->
+              <div class="ultra-thin-material rounded-xl overflow-hidden">
+                <div class="p-4 flex items-center gap-3">
+                  <span class="text-xl">🍽</span>
+                  <div class="flex-1">
+                    <span class="text-white font-semibold">Nutrition</span>
+                    <span class="text-white/60 text-sm ml-2">3/6</span>
+                  </div>
+                  <svg class="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Movement Section -->
+              <div class="ultra-thin-material rounded-xl overflow-hidden">
+                <div class="p-4 flex items-center gap-3">
+                  <span class="text-xl">🏃</span>
+                  <div class="flex-1">
+                    <span class="text-white font-semibold">Movement</span>
+                    <span class="text-white/60 text-sm ml-2">0/1</span>
+                  </div>
+                  <svg class="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Sleep Section -->
+              <div class="ultra-thin-material rounded-xl overflow-hidden">
+                <div class="p-4 flex items-center gap-3">
+                  <span class="text-xl">😴</span>
+                  <div class="flex-1">
+                    <span class="text-white font-semibold">Sleep</span>
+                    <span class="text-white/60 text-sm ml-2">0/1</span>
+                  </div>
+                  <svg class="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Tracking Section -->
+              <div class="ultra-thin-material rounded-xl overflow-hidden">
+                <div class="p-4 flex items-center gap-3">
+                  <span class="text-xl">📊</span>
+                  <div class="flex-1">
+                    <span class="text-white font-semibold">Tracking</span>
+                    <span class="text-white/60 text-sm ml-2">1/1</span>
+                  </div>
+                  <svg class="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <div class="tab-bar">
+            <div class="tab-item">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+              </svg>
+              <span>Home</span>
+            </div>
+            <div class="tab-item active">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/>
+              </svg>
+              <span>Daily</span>
+            </div>
+            <div class="tab-item">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+              </svg>
+              <span>Weekly</span>
+            </div>
+          </div>
+          <div class="home-indicator"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 3: Daily View Expanded -->
+    <div class="screen-wrapper">
+      <span class="screen-label">Daily View — Expanded Section</span>
+      <div class="device-frame">
+        <div class="device-screen">
+          <div class="dynamic-island"></div>
+          <div class="screen-content flex flex-col">
+            
+            <!-- Date Navigation -->
+            <div class="flex items-center justify-between mb-4">
+              <button class="w-9 h-9 flex items-center justify-center text-white">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <button class="px-3 py-1.5 ultra-thin-material rounded-full text-white text-sm font-medium">
+                Today
+              </button>
+              <button class="w-9 h-9 flex items-center justify-center text-white">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Date Header -->
+            <div class="mb-6">
+              <h2 class="text-2xl font-semibold text-white">Sunday, January 19</h2>
+            </div>
+
+            <!-- Expanded Nutrition Section -->
+            <div class="ultra-thin-material rounded-xl overflow-hidden mb-3">
+              <div class="p-4 flex items-center gap-3" style="background: rgba(192, 132, 252, 0.2);">
+                <span class="text-xl" style="color: var(--violet);">🍽</span>
+                <div class="flex-1">
+                  <span class="text-white font-semibold">Nutrition</span>
+                  <span class="text-white/60 text-sm ml-2">3/6</span>
+                </div>
+                <svg class="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+                </svg>
+              </div>
+              
+              <!-- Habit Rows -->
+              <div class="px-4 pb-4 space-y-2">
+                <div class="flex items-center gap-3 py-2">
+                  <div class="w-6 h-6 rounded-full border-2 border-white/50 flex items-center justify-center" style="background: rgba(255,255,255,0.2);">
+                    <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                  </div>
+                  <span class="text-white flex-1">Breakfast</span>
+                  <span class="text-white/60 text-sm px-3 py-1.5 ultra-thin-material rounded-full">10:30 AM</span>
+                </div>
+                
+                <div class="h-px bg-white/10 mx-4"></div>
+                
+                <div class="flex items-center gap-3 py-2">
+                  <div class="w-6 h-6 rounded-full border-2 border-white/50 flex items-center justify-center" style="background: rgba(255,255,255,0.2);">
+                    <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                  </div>
+                  <span class="text-white flex-1">Lunch</span>
+                  <span class="text-white/60 text-sm px-3 py-1.5 ultra-thin-material rounded-full">3:30 PM</span>
+                </div>
+                
+                <div class="h-px bg-white/10 mx-4"></div>
+                
+                <div class="flex items-center gap-3 py-2">
+                  <div class="w-6 h-6 rounded-full border-2 border-gray-500/50"></div>
+                  <span class="text-white flex-1">Dinner</span>
+                  <span class="text-white/60 text-sm px-3 py-1.5 ultra-thin-material rounded-full">9:00 PM</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Other Sections -->
+            <div class="ultra-thin-material rounded-xl overflow-hidden">
+              <div class="p-4 flex items-center gap-3">
+                <span class="text-xl">🏃</span>
+                <div class="flex-1">
+                  <span class="text-white font-semibold">Movement</span>
+                  <span class="text-white/60 text-sm ml-2">0/1</span>
+                </div>
+                <svg class="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </div>
+            </div>
+
+          </div>
+          <div class="tab-bar">
+            <div class="tab-item">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+              </svg>
+              <span>Home</span>
+            </div>
+            <div class="tab-item active">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/>
+              </svg>
+              <span>Daily</span>
+            </div>
+            <div class="tab-item">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+              </svg>
+              <span>Weekly</span>
+            </div>
+          </div>
+          <div class="home-indicator"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen 4: Weekly View -->
+    <div class="screen-wrapper">
+      <span class="screen-label">Weekly View</span>
+      <div class="device-frame">
+        <div class="device-screen">
+          <div class="dynamic-island"></div>
+          <div class="screen-content flex flex-col">
+            
+            <!-- Week Navigation -->
+            <div class="flex items-center justify-between mb-4">
+              <button class="w-11 h-11 flex items-center justify-center text-white">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <span class="text-white font-semibold">Jan 13 - 19</span>
+              <button class="w-11 h-11 flex items-center justify-center text-white">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Day Headers -->
+            <div class="grid grid-cols-7 gap-1 mb-4 text-center">
+              <div class="flex flex-col items-center gap-1">
+                <span class="text-white/60 text-xs">S</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <span class="text-white/60 text-xs">M</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <span class="text-white text-xs font-medium">T</span>
+                <div class="w-1 h-1 rounded-full bg-white"></div>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <span class="text-white/60 text-xs">W</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <span class="text-white/60 text-xs">T</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <span class="text-white/60 text-xs">F</span>
+              </div>
+              <div class="flex flex-col items-center gap-1">
+                <span class="text-white/60 text-xs">S</span>
+              </div>
+            </div>
+
+            <!-- Habit Rows with Heat Maps -->
+            <div class="space-y-3">
+              <div>
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-white/80 text-sm font-medium">Breakfast</span>
+                  <div class="px-2 py-0.5 rounded-full" style="background: rgba(34, 197, 94, 0.15);">
+                    <span class="text-xs" style="color: #22C55E;">🔥 5</span>
+                  </div>
+                </div>
+                <div class="grid grid-cols-7 gap-1">
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg" style="background: rgba(34, 197, 94, 0.15); color: #22C55E;">✓</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg" style="background: rgba(34, 197, 94, 0.15); color: #22C55E;">✓</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg border-2 border-white/50" style="background: rgba(34, 197, 94, 0.15); color: #22C55E;">✓</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-white/80 text-sm font-medium">Lunch</span>
+                </div>
+                <div class="grid grid-cols-7 gap-1">
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg" style="background: rgba(34, 197, 94, 0.15); color: #22C55E;">✓</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg" style="background: rgba(34, 197, 94, 0.15); color: #22C55E;">✓</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg" style="background: rgba(34, 197, 94, 0.15); color: #22C55E;">✓</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-white/80 text-sm font-medium">Completed workout</span>
+                </div>
+                <div class="grid grid-cols-7 gap-1">
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg" style="background: rgba(34, 197, 94, 0.15); color: #22C55E;">✓</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                  <div class="aspect-square rounded-lg flex items-center justify-center text-lg text-white/40" style="background: rgba(255,255,255,0.05);">·</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <div class="tab-bar">
+            <div class="tab-item">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+              </svg>
+              <span>Home</span>
+            </div>
+            <div class="tab-item">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/>
+              </svg>
+              <span>Daily</span>
+            </div>
+            <div class="tab-item active">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+              </svg>
+              <span>Weekly</span>
+            </div>
+          </div>
+          <div class="home-indicator"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center py-8 border-t border-white/10">
+    <p class="text-white/40">Habitat — Current Implementation</p>
+    <p class="text-white/20 text-sm mt-1">Mobile UI Designs v1.0</p>
+  </footer>
+
+</body>
+</html>

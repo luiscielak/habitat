@@ -40,24 +40,24 @@ struct HabitRowView: View {
                 }
             }) {
                 ZStack {
-                    // Background circle
+                    // Background circle (subtle when completed)
                     Circle()
-                        .fill(habit.isCompleted ? Color.white : Color.clear)
+                        .fill(habit.isCompleted ? Color.white.opacity(0.2) : Color.clear)
                         .frame(width: 24, height: 24)
                     
-                    // Border circle (gray when unchecked)
+                    // Border circle (gray when unchecked, subtle when checked)
                     Circle()
                         .strokeBorder(
-                            habit.isCompleted ? Color.white : Color.gray.opacity(0.5),
-                            lineWidth: habit.isCompleted ? 0 : 2
+                            habit.isCompleted ? Color.white.opacity(0.4) : Color.gray.opacity(0.5),
+                            lineWidth: habit.isCompleted ? 1.5 : 2
                         )
                         .frame(width: 24, height: 24)
                     
-                    // Checkmark when completed (dark on white for visibility)
+                    // Checkmark when completed (white for visibility on subtle background)
                     if habit.isCompleted {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.black)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.8))
                     }
                 }
             }

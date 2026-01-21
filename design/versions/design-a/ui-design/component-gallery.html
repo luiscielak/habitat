@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habitat - Component Gallery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Device Frame Styles */
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            padding: 8px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            position: relative;
+            margin: 0 auto;
+        }
+        
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            border-radius: 32px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 30px;
+            background: #000;
+            border-radius: 0 0 20px 20px;
+            z-index: 10;
+        }
+        
+        .screen-content {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            color: #fff;
+            padding: 20px;
+            overflow-y: auto;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+            padding-top: 50px;
+            padding-bottom: 80px;
+        }
+        
+        /* Component Styles */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            backdrop-filter: blur(20px);
+        }
+        
+        .checkbox {
+            width: 28px;
+            height: 28px;
+            border: 1.5px solid rgba(255, 255, 255, 0.4);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        
+        .checkbox.checked {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .checkbox.checked::after {
+            content: '✓';
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 150ms;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .button-primary {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .button:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+        
+        .input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 15px;
+            width: 100%;
+            min-height: 44px;
+        }
+        
+        .input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .time-chip {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 49px;
+            background: rgba(28, 28, 30, 0.95);
+            backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            padding: 4px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .tab-item.active {
+            color: #fff;
+        }
+        
+        .completion-counter {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 9999px;
+            padding: 8px 16px;
+            display: inline-block;
+            font-size: 28px;
+            font-weight: 600;
+            text-align: center;
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Habitat - Component Gallery</h1>
+            <p class="text-gray-600">High-fidelity component previews in device frames</p>
+        </header>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Button Variants -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Buttons</h2>
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="phone-notch"></div>
+                        <div class="screen-content">
+                            <h3 class="text-xl font-semibold mb-4">Button Variants</h3>
+                            
+                            <div class="mb-4">
+                                <button class="button-primary w-full mb-3">Primary Button</button>
+                                <button class="button w-full mb-3">Secondary Button</button>
+                                <button class="button w-full mb-3" style="background: transparent; border: none;">Tertiary Button</button>
+                            </div>
+                            
+                            <h3 class="text-xl font-semibold mb-4 mt-6">Button States</h3>
+                            
+                            <div class="mb-4">
+                                <button class="button-primary w-full mb-3">Default</button>
+                                <button class="button-primary w-full mb-3" style="opacity: 0.6; cursor: not-allowed;">Disabled</button>
+                                <button class="button-primary w-full mb-3" style="position: relative;">
+                                    <span style="opacity: 0.5;">Loading...</span>
+                                </button>
+                            </div>
+                            
+                            <div class="tab-bar">
+                                <div class="tab-item active">Home</div>
+                                <div class="tab-item">Daily</div>
+                                <div class="tab-item">Week</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Checkbox Variants -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Checkboxes</h2>
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="phone-notch"></div>
+                        <div class="screen-content">
+                            <h3 class="text-xl font-semibold mb-4">Checkbox States</h3>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox checked"></div>
+                                    <span class="text-base font-medium">Checked</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox"></div>
+                                    <span class="text-base font-medium">Unchecked</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox" style="opacity: 0.4;"></div>
+                                    <span class="text-base font-medium" style="opacity: 0.4;">Disabled</span>
+                                </div>
+                            </div>
+                            
+                            <h3 class="text-xl font-semibold mb-4 mt-6">In Context</h3>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox checked"></div>
+                                    <span class="text-base font-medium flex-grow">Weighed myself</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <div class="checkbox checked"></div>
+                                    <span class="text-base font-medium flex-grow">Breakfast</span>
+                                    <span class="time-chip">10:30 AM</span>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-bar">
+                                <div class="tab-item">Home</div>
+                                <div class="tab-item active">Daily</div>
+                                <div class="tab-item">Week</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Input Fields -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Input Fields</h2>
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="phone-notch"></div>
+                        <div class="screen-content">
+                            <h3 class="text-xl font-semibold mb-4">Input States</h3>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm text-gray-400 mb-2">Default</label>
+                                <input type="text" class="input" placeholder="Enter text">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm text-gray-400 mb-2">Focused</label>
+                                <input type="text" class="input" value="Focused input" style="border-color: rgba(255,255,255,0.4);">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm text-gray-400 mb-2">Disabled</label>
+                                <input type="text" class="input" value="Disabled" disabled style="opacity: 0.4;">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="block text-sm text-gray-400 mb-2">Error</label>
+                                <input type="text" class="input" value="Error state" style="border-color: #FF3B30;">
+                                <p class="text-xs text-red-500 mt-1">Error message</p>
+                            </div>
+                            
+                            <div class="tab-bar">
+                                <div class="tab-item">Home</div>
+                                <div class="tab-item">Daily</div>
+                                <div class="tab-item active">Week</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Cards -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Cards</h2>
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="phone-notch"></div>
+                        <div class="screen-content">
+                            <h3 class="text-xl font-semibold mb-4">Card Variants</h3>
+                            
+                            <div class="card">
+                                <p class="text-base font-medium">Default Card</p>
+                                <p class="text-sm text-gray-400 mt-2">With glass effect background</p>
+                            </div>
+                            
+                            <div class="card" style="background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2);">
+                                <p class="text-base font-medium">Selected Card</p>
+                                <p class="text-sm text-gray-400 mt-2">Highlighted state</p>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="flex items-center">
+                                    <span class="mr-3 text-2xl">📋</span>
+                                    <span class="text-base font-medium">Action Card</span>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-bar">
+                                <div class="tab-item active">Home</div>
+                                <div class="tab-item">Daily</div>
+                                <div class="tab-item">Week</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Progress Indicators -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Progress Indicators</h2>
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="phone-notch"></div>
+                        <div class="screen-content">
+                            <h3 class="text-xl font-semibold mb-4">Completion Counter</h3>
+                            
+                            <div class="text-center mt-6">
+                                <div class="completion-counter">6/9</div>
+                            </div>
+                            
+                            <h3 class="text-xl font-semibold mb-4 mt-8">Percentage</h3>
+                            
+                            <div class="text-center mt-6">
+                                <div class="completion-counter">82%</div>
+                            </div>
+                            
+                            <div class="tab-bar">
+                                <div class="tab-item">Home</div>
+                                <div class="tab-item">Daily</div>
+                                <div class="tab-item active">Week</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Tab Bar -->
+            <section class="mb-12">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Tab Bar</h2>
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="phone-notch"></div>
+                        <div class="screen-content">
+                            <h3 class="text-xl font-semibold mb-4">Tab States</h3>
+                            
+                            <div class="card">
+                                <p class="text-base mb-4">Tab bar with glass effect</p>
+                                <p class="text-sm text-gray-400">Fixed at bottom, 49pt height</p>
+                            </div>
+                            
+                            <div class="tab-bar">
+                                <div class="tab-item active">Home</div>
+                                <div class="tab-item">Daily</div>
+                                <div class="tab-item">Week</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+        
+        <footer class="mt-16 pt-8 border-t border-gray-300">
+            <div class="text-center text-gray-600">
+                <p>Component Gallery for Habitat iOS App</p>
+                <p class="text-sm mt-2">All components meet WCAG AA accessibility standards</p>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

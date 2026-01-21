@@ -1,0 +1,75 @@
+Home View Redesign — Mobile
+
++------------------------------------------+
+||                                          |
+||  [9:41]                    [⚡🔋]        |
+||                                          |
+||  +------------------+------------------+ |
+||  | Total Calories   | Total Protein    | |
+||  | 1,847 kcal       | 142g             | |
+||  +------------------+------------------+ |
+||                                          |
+||  Activity level  [████████░░] 80%      |
+||                                          |
+||  History                                 |
+||                                          |
+||  +----------------------------------+    |
+||  | 🍽 Breakfast                     |    |
+||  | 450 cal 28p                      |    |
+||  +----------------------------------+    |
+||                                          |
+||  +----------------------------------+    |
+||  | 🏃 Kettlebell                     |    |
+||  | Hard intensity                    |    |
+||  +----------------------------------+    |
+||                                          |
+||  +----------------------------------+    |
+||  | 🍽 Lunch                          |    |
+||  | 620 cal 45p                       |    |
+||  +----------------------------------+    |
+||                                          |
+||  +----------------------------------+    |
+||  | 🏃 Run                            |    |
+||  | Moderate intensity                |    |
+||  +----------------------------------+    |
+||                                          |
+||  +----------------------------------+    |
+||  | 🍽 Dinner                         |    |
+||  | 777 cal 69p                       |    |
+||  +----------------------------------+    |
+||                                          |
+||                                    [+]   |
+||                                    [✨]  |
+||                                          |
++------------------------------------------+
+||  [Tab: Home]  [Tab: Daily]  [Tab: Week]|
++------------------------------------------+
+
+Annotations:
+A1: KPI cards in 2-column grid, full width
+A2: Activity level indicator shows percentage with horizontal bar chart
+A3: History section header "History"
+A4: Timeline entries sorted chronologically by time (time not displayed)
+A5: Each entry shows: icon, title, details
+A6: Meals show only calories and protein (cal p)
+A7: Workouts show type and intensity
+A8: Two floating buttons in top-right corner (Add [+] and Support [✨])
+A9: Add button opens menu: Add meal, Add workout
+A10: Support button opens menu: Insights, I'm hungry, Wrap the day sheet
+
+Flow Hooks:
+→ Daily View (via tab bar)
+→ Weekly View (via tab bar)
+↑ Tap plus button → Show action menu
+↑ Tap timeline entry → Show details (future)
+↑ Tap KPI card → Show breakdown (future)
+
+Empty States:
+- No meals: "No meals logged yet"
+- No workouts: Activity level shows 0%
+- Empty timeline: "No activities logged today"
+
+Related FRs:
+- FR-2.1: Core Tracking Functionality
+- FR-3: Home Screen with Coaching Actions
+- FR-4.1: GPT-Powered Recommendation Coaching

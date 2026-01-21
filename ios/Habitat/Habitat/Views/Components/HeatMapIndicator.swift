@@ -38,7 +38,7 @@ struct HeatMapIndicator: View {
         }) {
             Text(isCompleted ? "✓" : "·")
                 .font(.title3)
-                .foregroundStyle(isCompleted ? .white : .secondary)
+                .foregroundStyle(isCompleted ? streakColor : .secondary)
                 .frame(height: 32)
                 .frame(maxWidth: .infinity)
                 .background(backgroundColor)
@@ -63,13 +63,20 @@ struct HeatMapIndicator: View {
         )
     }
 
+    /// Light green color matching streak badge style
+    private var streakColor: Color {
+        Color.green
+    }
+
     /// Background color based on completion and intensity
+    /// Matches StreakBadge style: dark green background with light green checkmark
     private var backgroundColor: Color {
         if isCompleted {
-            // Completed: Green gradient based on intensity
-            // Intensity determines opacity (0.3-1.0)
-            let opacity = max(0.3, intensity)
-            return Color.green.opacity(opacity)
+            // Completed: Dark green background (matching streak badge style)
+            // Intensity determines opacity (0.1-0.2) for subtle variation
+            let baseOpacity = 0.15 // Match streak badge opacity
+            let intensityVariation = intensity * 0.05 // Small variation based on intensity
+            return streakColor.opacity(baseOpacity + intensityVariation)
         } else {
             // Not completed: Subtle dark background
             return Color.white.opacity(0.05)

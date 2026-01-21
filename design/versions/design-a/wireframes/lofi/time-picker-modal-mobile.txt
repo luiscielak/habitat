@@ -1,0 +1,47 @@
+Time Picker Modal — Mobile
+
++------------------------------------------+
+|                                          |
+|  [Sheet Header]                          |
+|                                          |
+|  Select Time                             |
+|                                          |
+|  +----------------------------------+    |
+|  |                                  |    |
+|  |         [Time Picker Wheel]      |    |
+|  |                                  |    |
+|  |     10   11   12   1    2        |    |
+|  |     30   00   30   00   30       |    |
+|  |                                  |    |
+|  |     AM   AM   PM   PM   PM       |    |
+|  |                                  |    |
+|  +----------------------------------+    |
+|                                          |
+|  [S1: Time Picker]                       |
+|                                          |
+|  +----------------------------------+    |
+|  |         [Button: Done]           |    |
+|  +----------------------------------+    |
+|                                          |
+|  [S2: Action Button]                    |
+|                                          |
++------------------------------------------+
+
+Annotations:
+A1: Modal presented as sheet from bottom of screen
+A2: Native iOS time picker (wheel-style scrolling)
+A3: User scrolls to select hour, minute, AM/PM
+A4: "Done" button saves time and dismisses sheet
+A5: Tapping outside sheet or swiping down dismisses without saving
+A6: Selected time persists for future days (until changed)
+A7: Time format: 12-hour with AM/PM (or device setting)
+A8: Sheet has glass effect background (per design system)
+
+Flow Hooks:
+← Daily View (dismiss sheet, return to Daily View)
+↑ Tap "Done" → Save time, update habit, dismiss sheet
+↑ Swipe down → Dismiss without saving
+
+Related FRs:
+- FR-1: Daily Habit Tracking (time input requirement)
+- FR-5: Date Navigation (time persistence)

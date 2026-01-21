@@ -188,6 +188,13 @@ struct AnimationDebugPanel: View {
                     }
                 }
 
+                // Macro Parser Test
+                MacroParserTestSection(
+                    isExpanded: expandedSections.contains("Macro Parser Test")
+                ) {
+                    toggleSection("Macro Parser Test")
+                }
+
                 // Export Button
                 Button(action: {
                     UIPasteboard.general.string = config.exportConfig()
@@ -212,6 +219,67 @@ struct AnimationDebugPanel: View {
             expandedSections.remove(section)
         } else {
             expandedSections.insert(section)
+        }
+    }
+}
+
+// MARK: - Macro Parser Test
+
+private let macroParserTestInput = "Breakfast: scrambled eggs with bacon and cheese. 1/4 avocado, chimichurri, on sourdough toast"
+
+struct MacroParserTestSection: View {
+    let isExpanded: Bool
+    let onToggle: () -> Void
+
+    private var result: MacroInfo? {
+        MacroParser.extract(from: macroParserTestInput)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button(action: onToggle) {
+                HStack {
+                    Image(systemName: "number.circle")
+                        .foregroundStyle(.white.opacity(0.8))
+                    Text("Macro Parser Test")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+                .padding()
+                .background(.white.opacity(0.05))
+            }
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Input:")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                    Text(macroParserTestInput)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.9))
+                        .lineLimit(nil)
+
+                    Text("Result:")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                    if let m = result {
+                        Text("Cal: \(m.calories.map { "\(Int($0))" } ?? "—") · P: \(m.protein.map { "\(Int($0))g" } ?? "—") · C: \(m.carbs.map { "\(Int($0))g" } ?? "—") · F: \(m.fat.map { "\(Int($0))g" } ?? "—")")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.green)
+                    } else {
+                        Text("No macros extracted. Parser only finds explicit values like \"450 kcal\", \"25g protein\". This meal has none.")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                }
+                .padding()
+                .background(.white.opacity(0.02))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 }

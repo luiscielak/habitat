@@ -22,11 +22,17 @@ struct DailyView: View {
     /// Grouped habits by category
     @State private var habitGroups: [HabitGroup] = []
 
+    /// Currently selected category (for highlighting and reordering)
+    @State private var selectedCategory: HabitCategory?
+
     /// Daily statistics (impact score, etc.)
     @State private var dailyStats: DailyStats?
 
     /// Daily insight (coaching message)
     @State private var dailyInsight: DailyInsight?
+
+    /// Show success banner when meal details are saved
+    @State private var showMealSavedBanner = false
 
     /// Storage and services
     private let storage = HabitStorageManager.shared
@@ -35,47 +41,81 @@ struct DailyView: View {
     private let conditionalManager = ConditionalHabitManager.shared
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Date navigation bar (arrows + Today button)
-                DateNavigationBar(selectedDate: $selectedDate)
-                    .padding(.top)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Date navigation bar (arrows + Today button)
+                    DateNavigationBar(selectedDate: $selectedDate)
+                        .padding(.top)
 
-                // Current date display
-                DateHeaderView(date: selectedDate)
-                    .padding()
+                    // Current date display
+                    DateHeaderView(date: selectedDate)
+                        .padding()
 
-                // TEMPORARILY REMOVED: Impact Score Card
-                // if let stats = dailyStats {
-                //     ImpactScoreCard(stats: stats)
-                //         .padding(.horizontal)
-                //         .padding(.bottom, 8)
-                // }
+                    // TEMPORARILY REMOVED: Impact Score Card
+                    // if let stats = dailyStats {
+                    //     ImpactScoreCard(stats: stats)
+                    //         .padding(.horizontal)
+                    //         .padding(.bottom, 8)
+                    // }
 
-                // TEMPORARILY REMOVED: Daily Insight Card (coaching message)
-                // if let insight = dailyInsight {
-                //     InsightCard(insight: insight)
-                //         .padding(.horizontal)
-                //         .padding(.bottom, 16)
-                // }
+                    // TEMPORARILY REMOVED: Daily Insight Card (coaching message)
+                    // if let insight = dailyInsight {
+                    //     InsightCard(insight: insight)
+                    //         .padding(.horizontal)
+                    //         .padding(.bottom, 16)
+                    // }
 
-                // Grouped habits with progressive disclosure
-                VStack(spacing: 12) {
-                    ForEach($habitGroups) { $group in
-                        HabitGroupSection(
-                            group: $group,
-                            onHabitChange: { index, newHabit in
-                                handleHabitChange(in: group.category, at: index, newValue: newHabit)
-                            },
-                            selectedDate: selectedDate
-                        )
+                    // Grouped habits with progressive disclosure
+                    VStack(spacing: 12) {
+                        ForEach($habitGroups) { $group in
+                            HabitGroupSection(
+                                group: $group,
+                                onHabitChange: { index, newHabit in
+                                    handleHabitChange(in: group.category, at: index, newValue: newHabit)
+                                },
+                                selectedDate: selectedDate,
+                                isSelected: selectedCategory == group.category,
+                                onCategorySelected: { category in
+                                    handleCategorySelection(category)
+                                },
+                                onMealSaved: {
+                                    withAnimation(.easeOut(duration: 0.25)) {
+                                        showMealSavedBanner = true
+                                    }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                        withAnimation(.easeOut(duration: 0.25)) {
+                                            showMealSavedBanner = false
+                                        }
+                                    }
+                                }
+                            )
+                            .id(group.category)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 100) // Extra space for tab bar
+                }
+            }
+            .onChange(of: selectedCategory) { oldCategory, newCategory in
+                if let category = newCategory {
+                    // Wait for reordering animation to complete, then scroll
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            proxy.scrollTo(category, anchor: .top)
+                        }
                     }
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 100) // Extra space for tab bar
             }
         }
         .scrollContentBackground(.hidden)
+        .overlay(alignment: .top) {
+            if showMealSavedBanner {
+                mealSavedBanner
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(100)
+            }
+        }
         .onAppear {
             loadHabitsForSelectedDate()
         }
@@ -121,8 +161,8 @@ struct DailyView: View {
         let grouped = Dictionary(grouping: habits) { $0.categoryOrDefault }
 
         // Create HabitGroup objects
-        habitGroups = HabitCategory.allCases
-            .compactMap { category in
+        var groups = HabitCategory.allCases
+            .compactMap { category -> HabitGroup? in
                 guard let categoryHabits = grouped[category], !categoryHabits.isEmpty else {
                     return nil
                 }
@@ -140,7 +180,42 @@ struct DailyView: View {
                     isExpanded: true // All expanded by default
                 )
             }
-            .sorted { $0.category.sortOrder < $1.category.sortOrder }
+        
+        // Reorder: selected category goes to bottom, others maintain sort order
+        habitGroups = groups.sorted { group1, group2 in
+            if group1.category == selectedCategory {
+                return false // group1 goes after group2
+            }
+            if group2.category == selectedCategory {
+                return true // group2 goes after group1
+            }
+            // Both are not selected, maintain original sort order
+            return group1.category.sortOrder < group2.category.sortOrder
+        }
+    }
+    
+    /// Handle category selection
+    private func handleCategorySelection(_ category: HabitCategory) {
+        // Toggle selection: if same category is tapped, deselect it
+        if selectedCategory == category {
+            selectedCategory = nil
+        } else {
+            selectedCategory = category
+        }
+        
+        // Reorder groups to move selected to bottom
+        withAnimation(.easeInOut(duration: 0.3)) {
+            habitGroups = habitGroups.sorted { group1, group2 in
+                if group1.category == selectedCategory {
+                    return false // group1 goes after group2
+                }
+                if group2.category == selectedCategory {
+                    return true // group2 goes after group1
+                }
+                // Both are not selected, maintain original sort order
+                return group1.category.sortOrder < group2.category.sortOrder
+            }
+        }
     }
 
     /// Calculate daily statistics
@@ -192,6 +267,19 @@ struct DailyView: View {
         // Recalculate stats and insights (only from visible habits)
         calculateDailyStats(from: visibleHabits)
         generateDailyInsight()
+    }
+
+    /// Full-width banner at top when meal details are saved
+    private var mealSavedBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+            Text("Meal details saved")
+                .font(.system(size: 14, weight: .medium))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial)
     }
 }
 

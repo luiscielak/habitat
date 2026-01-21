@@ -1,0 +1,70 @@
+Home View with Inline Form — Mobile
+
++------------------------------------------+
+|                                          |
+|  Lock this in:                          |
+|                                          |
+|  +----------------------------------+    |
+|  | [*] Show my meals so far        |    |
+|  +----------------------------------+    |
+|                                          |
+|  +==================================+    |
+|  | [*] Workout recap                |    |
+|  +==================================+    |
+|                                          |
+|  [S1: Selected Action (Highlighted)]     |
+|                                          |
+|  +----------------------------------+    |
+|  | How intense?                    |    |
+|  | [Light] [Moderate] [Hard]       |    |
+|  |                                  |    |
+|  | Type of workout?                |    |
+|  | [Kettlebell] [Jump rope]        |    |
+|  | [Run] [Yoga] [Other]            |    |
+|  |                                  |    |
+|  | Duration (optional)             |    |
+|  | [Input: minutes]                |    |
+|  |                                  |    |
+|  | Notes (optional)                |    |
+|  | [Input: text area]              |    |
+|  |                                  |    |
+|  | [Button: Add activity]          |    |
+|  +----------------------------------+    |
+|                                          |
+|  [S2: Inline Form (Workout Recap)]       |
+|                                          |
+|  ---                                     |
+|                                          |
+|  +----------------------------------+    |
+|  | Based on your workout: aim for   |    |
+|  | a protein-rich meal with carbs   |    |
+|  | in the next 1-2 hours...         |    |
+|  +----------------------------------+    |
+|                                          |
+|  [S3: Insight Card (Coaching Response)]  |
+|                                          |
++------------------------------------------+
+|  [Tab: Home]  [Tab: Daily]  [Tab: Week]|
++------------------------------------------+
+
+Annotations:
+A1: Selected action card has visual highlight (different background)
+A2: Inline form appears immediately below selected action
+A3: Form fields vary by action type (workout, meal, hungry, etc.)
+A4: Primary action button at bottom of form (e.g., "Add activity")
+A5: Form can be dismissed by tapping action card again
+A6: After form submission, insight card appears below form
+A7: Users can scroll up to select different action
+A8: Loading state: Progress indicator while generating response
+A9: Empty state: No form shown until action is selected
+
+Flow Hooks:
+→ Daily View (via tab bar)
+→ Weekly View (via tab bar)
+↑ Tap different action → Switch to that action's form
+↑ Submit form → Show insight card with coaching response
+↑ Tap action again → Dismiss form
+
+Related FRs:
+- FR-3: Home Screen with Coaching Actions
+- FR-8: Inline Form Rendering

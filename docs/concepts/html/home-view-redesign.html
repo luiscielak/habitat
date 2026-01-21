@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Habitat — Home View Redesign Concept</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+      --violet: #C084FC;
+      --magenta: #EC4899;
+      --gradient-brand: linear-gradient(135deg, #C084FC 0%, #EC4899 100%);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #000000;
+    }
+
+    .ultra-thin-material {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .device-frame {
+      width: 375px;
+      height: 812px;
+      background: #1a1a1a;
+      border-radius: 50px;
+      padding: 14px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      flex-shrink: 0;
+    }
+
+    .device-screen {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .dynamic-island {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 126px;
+      height: 37px;
+      background: #000;
+      border-radius: 24px;
+      z-index: 10;
+    }
+
+    .home-indicator {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 134px;
+      height: 5px;
+      background: #fff;
+      border-radius: 3px;
+      opacity: 0.3;
+    }
+
+    .screen-content {
+      padding: 60px 16px 100px;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    .screens-container {
+      display: flex;
+      gap: 48px;
+      overflow-x: auto;
+      padding: 48px;
+      scroll-snap-type: x mandatory;
+    }
+
+    .screen-wrapper {
+      scroll-snap-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .screen-label {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 14px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tab-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-around;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 11px;
+    }
+
+    .tab-item.active {
+      color: rgba(255, 255, 255, 1);
+    }
+
+    .floating-plus {
+      position: absolute;
+      top: 60px;
+      right: 16px;
+      width: 56px;
+      height: 56px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+  <div class="screens-container">
+    <!-- Home View Redesign -->
+    <div class="screen-wrapper">
+      <span class="screen-label">Home View Redesign</span>
+      <div class="device-frame">
+        <div class="device-screen">
+          <div class="dynamic-island"></div>
+          <div class="screen-content">
+            
+            <!-- Summary Section: 2-Column KPI Cards -->
+            <div class="flex gap-3 mb-4">
+              <div class="ultra-thin-material rounded-xl p-4 flex-1">
+                <div class="text-xs text-white/60 mb-1">Total Calories</div>
+                <div class="text-2xl font-semibold text-white">1,847 kcal</div>
+              </div>
+              <div class="ultra-thin-material rounded-xl p-4 flex-1">
+                <div class="text-xs text-white/60 mb-1">Total Protein</div>
+                <div class="text-2xl font-semibold text-white">142g</div>
+              </div>
+            </div>
+
+            <!-- Activity Level Indicator -->
+            <div class="mb-6">
+              <div class="ultra-thin-material rounded-xl px-4 py-3 flex items-center gap-3">
+                <span class="text-xs text-white/60">Activity level</span>
+                <div class="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+                  <div class="h-full bg-white rounded-full" style="width: 80%"></div>
+                </div>
+                <span class="text-xs text-white w-10 text-right">80%</span>
+              </div>
+            </div>
+
+            <!-- History Section -->
+            <div class="mb-4">
+              <h2 class="text-xl font-semibold text-white mb-4">History</h2>
+              
+              <!-- Timeline Entry: Breakfast -->
+              <div class="ultra-thin-material rounded-xl p-4 mb-2">
+                <div class="flex items-start gap-3">
+                  <svg class="w-4 h-4 text-white mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                  <div class="flex-1">
+                    <div class="text-sm font-medium text-white mb-1">Breakfast</div>
+                    <div class="text-xs text-white/60">450 cal 28p</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Timeline Entry: Workout -->
+              <div class="ultra-thin-material rounded-xl p-4 mb-2">
+                <div class="flex items-start gap-3">
+                  <svg class="w-4 h-4 text-white mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                  </svg>
+                  <div class="flex-1">
+                    <div class="text-sm font-medium text-white mb-1">Kettlebell</div>
+                    <div class="text-xs text-white/60">Hard intensity</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Timeline Entry: Lunch -->
+              <div class="ultra-thin-material rounded-xl p-4 mb-2">
+                <div class="flex items-start gap-3">
+                  <svg class="w-4 h-4 text-white mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                  <div class="flex-1">
+                    <div class="text-sm font-medium text-white mb-1">Lunch</div>
+                    <div class="text-xs text-white/60">620 cal 45p</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Timeline Entry: Run -->
+              <div class="ultra-thin-material rounded-xl p-4 mb-2">
+                <div class="flex items-start gap-3">
+                  <svg class="w-4 h-4 text-white mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                  </svg>
+                  <div class="flex-1">
+                    <div class="text-sm font-medium text-white mb-1">Run</div>
+                    <div class="text-xs text-white/60">Moderate intensity</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Timeline Entry: Dinner -->
+              <div class="ultra-thin-material rounded-xl p-4 mb-2">
+                <div class="flex items-start gap-3">
+                  <svg class="w-4 h-4 text-white mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                  <div class="flex-1">
+                    <div class="text-sm font-medium text-white mb-1">Dinner</div>
+                    <div class="text-xs text-white/60">777 cal 69p</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+          
+          <!-- Floating Action Buttons -->
+          <div style="position: absolute; top: 60px; right: 16px; display: flex; flex-direction: column; gap: 12px; z-index: 5;">
+            <!-- Add Button -->
+            <div class="floating-plus">
+              <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+            </div>
+            <!-- Support Button -->
+            <div class="floating-plus">
+              <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="tab-bar">
+            <div class="tab-item active">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+              </svg>
+              <span>Home</span>
+            </div>
+            <div class="tab-item">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/>
+              </svg>
+              <span>Daily</span>
+            </div>
+            <div class="tab-item">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+              </svg>
+              <span>Weekly</span>
+            </div>
+          </div>
+          <div class="home-indicator"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

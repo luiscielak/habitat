@@ -169,4 +169,26 @@ struct NutritionMeal: Identifiable, Equatable, Codable {
         lhs.attachments == rhs.attachments &&
         lhs.extractedMacros == rhs.extractedMacros
     }
+    
+    /// First image from attachments for thumbnail display
+    var firstImage: UIImage? {
+        for att in attachments {
+            if case .image(let img) = att { return img }
+        }
+        return nil
+    }
+    
+    /// Short description for card: first text (truncated), URL host, or label
+    var mealDescription: String {
+        for att in attachments {
+            if case .text(let s) = att {
+                let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+                return String(t.prefix(30)) + (t.count > 30 ? "…" : "")
+            }
+            if case .url(let u) = att {
+                return u.host ?? String(u.absoluteString.prefix(25))
+            }
+        }
+        return label
+    }
 }

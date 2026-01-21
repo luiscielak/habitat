@@ -1,0 +1,101 @@
+Weekly View — Mobile (Design B: Radiant Focus)
+==============================================
+
++----------------------------------------+
+|                                        |
+|  [S1] Week Selector                    |
+|                                        |
+|    ←   Week of January 13, 2026   →    |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [S2] Day Headers                      |
+|                                        |
+|    S    M    T    W    T    F    S     |
+|   12   13   14   15   16   17   18     |
+|              ↑                         |
+|           (today)                      |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [S3] Habit Grid                       |
+|                                        |
+|  Weighed      ●    ●    ●    ●    ○    ○    ○   |
+|  Breakfast    ●    ●    ●    ●    ○    ○    ○   |
+|  Lunch        ●    ●    ●    ◐    ○    ○    ○   |
+|  Pre-workout  -    ●    -    ○    -    ○    -   |
+|  Dinner       ●    ●    ●    ○    ○    ○    ○   |
+|  Kitchen 10   ●    ●    ●    ○    ○    ○    ○   |
+|  Tracked      ●    ●    ●    ○    ○    ○    ○   |
+|  Workout      ○    ●    ○    ○    ○    ○    ○   |
+|  Sleep bed    ●    ●    ●    ○    ○    ○    ○   |
+|                                        |
+|  [A1] Grid cells are tappable          |
+|  [A2] ● = Gradient dot (completed)     |
+|  [A3] ○ = Gray dot (incomplete)        |
+|  [A4] ◐ = Partial (in progress)        |
+|  [A5] - = Not applicable               |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [S4] Weekly Summary Card              |
+|                                        |
+|  /================================\    |
+|  |  This Week                     |    |
+|  |                                |    |
+|  |  ●━━━━━━━━○  67%               |    |
+|  |                                |    |
+|  |  Best day: Tuesday (9/9) ✨    |    |
+|  |  Focus area: Workout           |    |
+|  |                                |    |
+|  \================================/    |
+|                                        |
++----------------------------------------+
+|                                        |
+|  [TAB: Home] [TAB: Daily] [TAB: Week*] |
+|                                        |
++----------------------------------------+
+
+Annotations:
+-----------
+A1: Tapping any cell navigates to that day's Focus Mode
+    with that habit pre-selected
+
+A2: Completed habits show gradient-filled dots
+    Gradient: purple → pink (matches brand)
+
+A3: Incomplete habits show gray dots (20% opacity)
+
+A4: In-progress (today's partial) shows half-filled dot
+
+A5: Conditional habits (pre-workout) show dash when
+    not applicable for that day
+
+A6: Today's column has subtle glow/highlight
+
+A7: Weekly summary card shows:
+    - Overall completion percentage
+    - Best performing day
+    - Suggested focus area (lowest completion habit)
+
+States:
+-------
+- Empty week: All gray dots, "Start tracking" message
+- Partial week: Mixed dots, summary shows progress
+- Perfect week: All gradient dots, celebration banner
+- Loading: Skeleton grid and summary
+
+Flow Hooks:
+-----------
+- Tap cell → Focus Mode for that day/habit
+- Tap day header → Focus Mode for that day (first habit)
+- Week navigation ← → → Load adjacent week
+- Tap summary card → Detailed analytics (future)
+- Tab: Home → Dashboard
+- Tab: Daily → Focus Mode (today)
+
+Related FRs:
+-----------
+- FR-2: Weekly Pattern View
+- FR-2.1: Core Tracking Functionality
+- FR-5: Date Navigation

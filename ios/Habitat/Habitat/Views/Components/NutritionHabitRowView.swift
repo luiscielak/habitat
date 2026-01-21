@@ -20,6 +20,9 @@ struct NutritionHabitRowView: View {
     /// The date this habit belongs to (for loading/saving nutrition data)
     let date: Date
     
+    /// Callback when meal details are saved (for showing banner in parent)
+    var onMealSaved: (() -> Void)? = nil
+    
     /// Local state to track whether the time picker sheet is showing
     @State private var showingTimePicker = false
     
@@ -31,9 +34,6 @@ struct NutritionHabitRowView: View {
     
     /// Current nutrition meal data (loaded from storage)
     @State private var nutritionMeal: NutritionMeal?
-    
-    /// Show success toast message
-    @State private var showSuccessToast = false
     
     /// Check if this is a meal habit that should show the + button
     private var isMealHabit: Bool {
@@ -61,24 +61,24 @@ struct NutritionHabitRowView: View {
                     }
                 }) {
                     ZStack {
-                        // Background circle
+                        // Background circle (subtle when completed)
                         Circle()
-                            .fill(habit.isCompleted ? Color.white : Color.clear)
+                            .fill(habit.isCompleted ? Color.white.opacity(0.2) : Color.clear)
                             .frame(width: 24, height: 24)
                         
-                        // Border circle (gray when unchecked)
+                        // Border circle (gray when unchecked, subtle when checked)
                         Circle()
                             .strokeBorder(
-                                habit.isCompleted ? Color.white : Color.gray.opacity(0.5),
-                                lineWidth: habit.isCompleted ? 0 : 2
+                                habit.isCompleted ? Color.white.opacity(0.4) : Color.gray.opacity(0.5),
+                                lineWidth: habit.isCompleted ? 1.5 : 2
                             )
                             .frame(width: 24, height: 24)
                         
-                        // Checkmark when completed (dark on white for visibility)
+                        // Checkmark when completed (white for visibility on subtle background)
                         if habit.isCompleted {
                             Image(systemName: "checkmark")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.black)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.8))
                         }
                     }
                 }
@@ -111,17 +111,7 @@ struct NutritionHabitRowView: View {
                         
                         // + button for meal habits
                         if isMealHabit {
-                            Button(action: {
-                                // Load or create nutrition meal before showing sheet
-                                if nutritionMeal == nil {
-                                    nutritionMeal = storage.loadNutritionMeal(for: habit.id, date: date) ?? NutritionMeal(
-                                        label: habit.title,
-                                        isCompleted: habit.isCompleted,
-                                        time: habit.trackedTime
-                                    )
-                                }
-                                showingNutritionLog = true
-                            }) {
+                            Button(action: { openNutritionLog() }) {
                                 Image(systemName: "plus")
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundStyle(.secondary)
@@ -135,16 +125,14 @@ struct NutritionHabitRowView: View {
                 }
             }
             
-            // Macro chips displayed under meal name
-            if isMealHabit, let meal = nutritionMeal, let macros = meal.extractedMacros, macros.hasAnyData {
-                HStack(spacing: 6) {
-                    Spacer()
-                        .frame(width: 24) // Align with checkbox
-                    
-                    macroChips(macros: macros)
-                    
-                    Spacer()
-                }
+            // Macro overview card when meal has been logged (attachments and/or macros)
+            if isMealHabit, let meal = nutritionMeal, meal.extractedMacros?.hasAnyData == true || !meal.attachments.isEmpty {
+                MealMacroOverviewCard(
+                    meal: meal,
+                    date: date,
+                    onTap: { openNutritionLog() },
+                    onMore: { openNutritionLog() }
+                )
             }
         }
         .padding(.vertical, 4)
@@ -172,24 +160,32 @@ struct NutritionHabitRowView: View {
                     ),
                     habitTitle: habit.title,
                     onSave: { savedMeal in
-                        nutritionMeal = savedMeal
+                        var mealToSave = savedMeal
+                        nutritionMeal = mealToSave
                         saveNutritionMeal()
-                        syncNutritionMealToHabit()
                         
-                        // Reload to ensure macros are displayed
-                        loadNutritionMeal()
-                        
-                        // Show success message
-                        withAnimation {
-                            showSuccessToast = true
-                        }
-                        
-                        // Hide toast after 2 seconds
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            withAnimation {
-                                showSuccessToast = false
+                        // Only mark as complete when the user actually entered meal content
+                        let hasContent = !savedMeal.attachments.isEmpty
+                        if hasContent {
+                            mealToSave.isCompleted = true
+                            mealToSave.time = mealToSave.time ?? Date()
+                            nutritionMeal = mealToSave
+                            saveNutritionMeal()
+                            
+                            var updatedHabit = habit
+                            updatedHabit.isCompleted = true
+                            if updatedHabit.trackedTime == nil {
+                                updatedHabit.trackedTime = Date()
                             }
+                            habit = updatedHabit
+                            syncNutritionMealToHabit()
+                            onMealSaved?()
+                            
+                            // Notify HomeView to refresh
+                            NotificationCenter.default.post(name: NSNotification.Name("MealDataChanged"), object: nil)
                         }
+                        
+                        loadNutritionMeal()
                     }
                 )
             }
@@ -200,12 +196,6 @@ struct NutritionHabitRowView: View {
                 loadNutritionMeal()
             }
         }
-        .overlay(alignment: .top) {
-            if showSuccessToast {
-                successToast
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
         .onAppear {
             loadNutritionMeal()
         }
@@ -214,63 +204,16 @@ struct NutritionHabitRowView: View {
         }
     }
     
-    /// Macro chips view for displaying extracted macros
-    @ViewBuilder
-    private func macroChips(macros: MacroInfo) -> some View {
-        HStack(spacing: 6) {
-            if let cal = macros.calories {
-                macroChip(value: cal, unit: "kcal", label: nil)
-            }
-            
-            if let protein = macros.protein {
-                macroChip(value: protein, unit: "g", label: "P")
-            }
-            
-            if let carbs = macros.carbs {
-                macroChip(value: carbs, unit: "g", label: "C")
-            }
-            
-            if let fat = macros.fat {
-                macroChip(value: fat, unit: "g", label: "F")
-            }
+    /// Open nutrition log sheet (load meal if needed)
+    private func openNutritionLog() {
+        if nutritionMeal == nil {
+            nutritionMeal = storage.loadNutritionMeal(for: habit.title, date: date) ?? NutritionMeal(
+                label: habit.title,
+                isCompleted: habit.isCompleted,
+                time: habit.trackedTime
+            )
         }
-    }
-    
-    /// Individual macro chip
-    private func macroChip(value: Double, unit: String, label: String?) -> some View {
-        HStack(spacing: 3) {
-            if let label = label {
-                Text(label)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
-            }
-            
-            Text("\(Int(value))\(unit)")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.primary)
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(Color.white.opacity(0.1))
-        )
-    }
-    
-    /// Success toast message
-    private var successToast: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-            Text("Meal details saved")
-                .font(.system(size: 14, weight: .medium))
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
-        .padding(.top, 8)
+        showingNutritionLog = true
     }
     
     /// Format the tracked time as a readable string
@@ -286,13 +229,13 @@ struct NutritionHabitRowView: View {
     
     /// Load nutrition meal data from storage
     private func loadNutritionMeal() {
-        nutritionMeal = storage.loadNutritionMeal(for: habit.id, date: date)
+        nutritionMeal = storage.loadNutritionMeal(for: habit.title, date: date)
     }
-    
+
     /// Save nutrition meal data to storage
     private func saveNutritionMeal() {
         if let meal = nutritionMeal {
-            storage.saveNutritionMeal(meal, for: habit.id, date: date)
+            storage.saveNutritionMeal(meal, for: habit.title, date: date)
         }
     }
     

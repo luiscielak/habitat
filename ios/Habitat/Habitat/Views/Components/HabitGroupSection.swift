@@ -17,6 +17,9 @@ struct HabitGroupSection: View {
     @Binding var group: HabitGroup
     let onHabitChange: (Int, Habit) -> Void
     let selectedDate: Date
+    let isSelected: Bool
+    let onCategorySelected: (HabitCategory) -> Void
+    var onMealSaved: (() -> Void)? = nil
 
     @ObservedObject private var animConfig = AnimationConfig.shared
 
@@ -28,15 +31,21 @@ struct HabitGroupSection: View {
                 let impact = UIImpactFeedbackGenerator(style: .light)
                 impact.impactOccurred()
 
-                withAnimation(animConfig.cardFadeAnimation) {
-                    group.isExpanded.toggle()
+                // Notify parent of category selection
+                onCategorySelected(group.category)
+                
+                // Expand if not already expanded
+                if !group.isExpanded {
+                    withAnimation(animConfig.cardFadeAnimation) {
+                        group.isExpanded = true
+                    }
                 }
             }) {
                 HStack {
                     // Category icon
                     Image(systemName: group.category.icon)
                         .font(.title3)
-                        .foregroundStyle(group.category.color)
+                        .foregroundStyle(isSelected ? Theme.violet : .primary)
                         .frame(width: 28)
 
                     // Category name and count
@@ -56,7 +65,7 @@ struct HabitGroupSection: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding()
-                .background(.ultraThinMaterial)
+                .background(headerBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .buttonStyle(.plain)
@@ -67,13 +76,17 @@ struct HabitGroupSection: View {
                     ForEach(Array(group.habits.enumerated()), id: \.offset) { index, habit in
                         // Use NutritionHabitRowView for nutrition category, HabitRowView for others
                         if group.category == .nutrition {
-                            NutritionHabitRowView(habit: Binding(
-                                get: { group.habits[index] },
-                                set: { newValue in
-                                    group.habits[index] = newValue
-                                    onHabitChange(index, newValue)
-                                }
-                            ), date: selectedDate)
+                            NutritionHabitRowView(
+                                habit: Binding(
+                                    get: { group.habits[index] },
+                                    set: { newValue in
+                                        group.habits[index] = newValue
+                                        onHabitChange(index, newValue)
+                                    }
+                                ),
+                                date: selectedDate,
+                                onMealSaved: onMealSaved
+                            )
                             .padding(.horizontal)
                             .padding(.vertical, 8)
                         } else {
@@ -99,6 +112,17 @@ struct HabitGroupSection: View {
             }
         }
     }
+
+    @ViewBuilder
+    private var headerBackground: some View {
+        if isSelected {
+            Theme.violet.opacity(0.2)
+                .background(.ultraThinMaterial)
+        } else {
+            Color.clear
+                .background(.ultraThinMaterial)
+        }
+    }
 }
 
 // MARK: - Preview
@@ -118,9 +142,17 @@ struct HabitGroupSection: View {
 
         var body: some View {
             VStack {
-                HabitGroupSection(group: $group, onHabitChange: { index, habit in
-                    print("Habit changed: \(habit.title)")
-                }, selectedDate: Date())
+                HabitGroupSection(
+                    group: $group,
+                    onHabitChange: { index, habit in
+                        print("Habit changed: \(habit.title)")
+                    },
+                    selectedDate: Date(),
+                    isSelected: false,
+                    onCategorySelected: { category in
+                        print("Category selected: \(category)")
+                    }
+                )
             }
             .padding()
             .background(.ultraThinMaterial)

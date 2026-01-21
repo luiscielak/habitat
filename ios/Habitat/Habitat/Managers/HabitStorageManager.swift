@@ -296,60 +296,81 @@ class HabitStorageManager {
     ///
     /// - Parameters:
     ///   - meal: The nutrition meal to save
-    ///   - habitId: The UUID of the associated habit
+    ///   - habitTitle: The title of the associated habit (stable identifier)
     ///   - date: The date this meal belongs to
-    func saveNutritionMeal(_ meal: NutritionMeal, for habitId: UUID, date: Date) {
-        let key = nutritionMealKey(for: habitId, date: date)
-        
+    func saveNutritionMeal(_ meal: NutritionMeal, for habitTitle: String, date: Date) {
+        let key = nutritionMealKey(for: habitTitle, date: date)
+
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        
+
         do {
             let data = try encoder.encode(meal)
             UserDefaults.standard.set(data, forKey: key)
-            print("✅ Saved nutrition meal for habit \(habitId) on \(key)")
         } catch {
             print("❌ Failed to save nutrition meal: \(error.localizedDescription)")
         }
     }
-    
+
     /// Load nutrition meal data for a specific habit and date
     ///
     /// - Parameters:
-    ///   - habitId: The UUID of the associated habit
+    ///   - habitTitle: The title of the associated habit (stable identifier)
     ///   - date: The date to load the meal for
     /// - Returns: The nutrition meal, or nil if none saved
-    func loadNutritionMeal(for habitId: UUID, date: Date) -> NutritionMeal? {
-        let key = nutritionMealKey(for: habitId, date: date)
-        
+    func loadNutritionMeal(for habitTitle: String, date: Date) -> NutritionMeal? {
+        let key = nutritionMealKey(for: habitTitle, date: date)
+
         guard let data = UserDefaults.standard.data(forKey: key) else {
             return nil
         }
-        
+
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        
+
         do {
             let meal = try decoder.decode(NutritionMeal.self, from: data)
-            print("✅ Loaded nutrition meal for habit \(habitId) on \(key)")
             return meal
         } catch {
             print("❌ Failed to load nutrition meal: \(error.localizedDescription)")
             return nil
         }
     }
-    
+
     /// Generate storage key for nutrition meal data
     ///
-    /// Format: "nutritionMeal_<date>_<habitId>"
+    /// Format: "nutritionMeal_<date>_<habitTitle>"
+    /// Uses habit title (stable) instead of habit ID (unstable across app launches)
     ///
     /// - Parameters:
-    ///   - habitId: The UUID of the habit
+    ///   - habitTitle: The title of the habit (e.g., "Breakfast", "Lunch")
     ///   - date: The date
     /// - Returns: Storage key string
-    private func nutritionMealKey(for habitId: UUID, date: Date) -> String {
+    private func nutritionMealKey(for habitTitle: String, date: Date) -> String {
         let dateKey = self.dateKey(from: date).replacingOccurrences(of: "habitData_", with: "")
-        return "nutritionMeal_\(dateKey)_\(habitId.uuidString)"
+        // Sanitize title for use in key (remove spaces, lowercase)
+        let sanitizedTitle = habitTitle.lowercased().replacingOccurrences(of: " ", with: "_")
+        return "nutritionMeal_\(dateKey)_\(sanitizedTitle)"
+    }
+
+    /// Summary of today's meal intake for coaching (Breakfast, Lunch, Dinner).
+    func todaysMealSummary(for date: Date) -> String {
+        let mealTitles = ["Breakfast", "Lunch", "Dinner"]
+        var lines: [String] = []
+        for title in mealTitles {
+            guard let meal = loadNutritionMeal(for: title, date: date) else { continue }
+            if let m = meal.extractedMacros, m.hasAnyData {
+                var parts: [String] = []
+                if let cal = m.calories { parts.append("\(Int(cal)) kcal") }
+                if let p = m.protein { parts.append("\(Int(p))g P") }
+                if let c = m.carbs { parts.append("\(Int(c))g C") }
+                if let f = m.fat { parts.append("\(Int(f))g F") }
+                lines.append("\(title): \(parts.joined(separator: ", "))")
+            } else if !meal.attachments.isEmpty {
+                lines.append("\(title): (logged)")
+            }
+        }
+        return lines.isEmpty ? "No meals logged yet." : lines.joined(separator: "\n")
     }
 
     // MARK: - Day Management
@@ -373,6 +394,152 @@ class HabitStorageManager {
         // Compare calendar dates, not exact timestamps
         // Returns false if same day, true if different day
         return !Calendar.current.isDate(lastDate, inSameDayAs: Date())
+    }
+
+    // MARK: - Workout Preferences
+    
+    private let workoutPreferencesKey = "workoutPreferences"
+    
+    /// Save workout preferences
+    func saveWorkoutPreferences(_ preferences: WorkoutPreferences) {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        
+        do {
+            let data = try encoder.encode(preferences)
+            UserDefaults.standard.set(data, forKey: workoutPreferencesKey)
+        } catch {
+            print("❌ Failed to save workout preferences: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Load workout preferences
+    func loadWorkoutPreferences() -> WorkoutPreferences {
+        guard let data = UserDefaults.standard.data(forKey: workoutPreferencesKey) else {
+            return WorkoutPreferences() // Return default preferences
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        
+        do {
+            return try decoder.decode(WorkoutPreferences.self, from: data)
+        } catch {
+            print("❌ Failed to load workout preferences: \(error.localizedDescription)")
+            return WorkoutPreferences() // Return default on error
+        }
+    }
+    
+    /// Record a workout to update preferences
+    func recordWorkout(intensity: String, workoutTypes: [String], duration: Int?) {
+        var preferences = loadWorkoutPreferences()
+        preferences.recordWorkout(intensity: intensity, workoutTypes: workoutTypes, duration: duration)
+        saveWorkoutPreferences(preferences)
+    }
+    
+    // MARK: - Workout Record Storage
+    
+    /// Save workout record for a specific date
+    ///
+    /// - Parameters:
+    ///   - record: The workout record to save
+    ///   - date: The date this workout belongs to
+    func saveWorkoutRecord(_ record: WorkoutRecord, for date: Date) {
+        let key = workoutRecordKey(for: record.id, date: date)
+        
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        
+        do {
+            let data = try encoder.encode(record)
+            UserDefaults.standard.set(data, forKey: key)
+        } catch {
+            print("❌ Failed to save workout record: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Load all workout records for a specific date
+    ///
+    /// - Parameter date: The date to load workouts for
+    /// - Returns: Array of workout records, sorted by time
+    func loadWorkoutRecords(for date: Date) -> [WorkoutRecord] {
+        let dateKey = dateKey(from: date)
+        let prefix = "workoutRecord_\(dateKey)_"
+        
+        var records: [WorkoutRecord] = []
+        let allKeys = UserDefaults.standard.dictionaryRepresentation().keys
+        
+        for key in allKeys where key.hasPrefix(prefix) {
+            guard let data = UserDefaults.standard.data(forKey: key) else { continue }
+            
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            
+            do {
+                let record = try decoder.decode(WorkoutRecord.self, from: data)
+                records.append(record)
+            } catch {
+                print("❌ Failed to load workout record from key \(key): \(error.localizedDescription)")
+            }
+        }
+        
+        // Sort by time (or creation order if no time)
+        return records.sorted { record1, record2 in
+            let time1 = record1.time ?? Date.distantPast
+            let time2 = record2.time ?? Date.distantPast
+            return time1 < time2
+        }
+    }
+    
+    /// Generate storage key for workout record
+    ///
+    /// Format: "workoutRecord_<date>_<uuid>"
+    ///
+    /// - Parameters:
+    ///   - id: The workout record ID
+    ///   - date: The date
+    /// - Returns: Storage key string
+    private func workoutRecordKey(for id: UUID, date: Date) -> String {
+        let dateKey = dateKey(from: date).replacingOccurrences(of: "habitData_", with: "")
+        return "workoutRecord_\(dateKey)_\(id.uuidString)"
+    }
+    
+    // MARK: - KPI Calculations
+    
+    /// Calculate total calories for a specific date
+    ///
+    /// - Parameter date: The date to calculate for
+    /// - Returns: Total calories from all meals for that date
+    func totalCalories(for date: Date) -> Double {
+        let mealTitles = ["Breakfast", "Lunch", "Dinner", "Pre-workout meal"]
+        var total: Double = 0
+        
+        for title in mealTitles {
+            if let meal = loadNutritionMeal(for: title, date: date),
+               let calories = meal.extractedMacros?.calories {
+                total += calories
+            }
+        }
+        
+        return total
+    }
+    
+    /// Calculate total protein for a specific date
+    ///
+    /// - Parameter date: The date to calculate for
+    /// - Returns: Total protein in grams from all meals for that date
+    func totalProtein(for date: Date) -> Double {
+        let mealTitles = ["Breakfast", "Lunch", "Dinner", "Pre-workout meal"]
+        var total: Double = 0
+        
+        for title in mealTitles {
+            if let meal = loadNutritionMeal(for: title, date: date),
+               let protein = meal.extractedMacros?.protein {
+                total += protein
+            }
+        }
+        
+        return total
     }
 
     // MARK: - Utilities
