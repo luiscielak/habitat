@@ -569,4 +569,213 @@ class HabitStorageManager {
         formatter.timeZone = TimeZone.current
         return "habitData_\(formatter.string(from: date))"
     }
+
+    // MARK: - Timeline Event Storage
+
+    /// Save timeline events for a specific date
+    ///
+    /// - Parameters:
+    ///   - events: Array of timeline events to save
+    ///   - date: The date these events belong to
+    func saveTimelineEvents(_ events: [TimelineEvent], for date: Date) {
+        let key = timelineEventsKey(for: date)
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+
+        do {
+            let data = try encoder.encode(events)
+            UserDefaults.standard.set(data, forKey: key)
+            print("✅ Saved \(events.count) timeline events for \(key)")
+            
+            // Sync habit events to Habit objects for WeeklyView compatibility
+            for event in events where event.type == .habit {
+                syncHabitEventToHabit(event, for: date)
+            }
+        } catch {
+            print("❌ Failed to save timeline events: \(error.localizedDescription)")
+        }
+    }
+
+    /// Load timeline events for a specific date
+    ///
+    /// If no timeline events exist, builds them from legacy data (habits, meals, workouts).
+    ///
+    /// - Parameter date: The date to load events for
+    /// - Returns: Array of timeline events sorted by timestamp
+    func loadTimelineEvents(for date: Date) -> [TimelineEvent] {
+        let key = timelineEventsKey(for: date)
+
+        // Try to load saved timeline events first
+        if let data = UserDefaults.standard.data(forKey: key) {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+
+            do {
+                let events = try decoder.decode([TimelineEvent].self, from: data)
+                print("✅ Loaded \(events.count) timeline events for \(key)")
+                return events.sorted { $0.timestamp < $1.timestamp }
+            } catch {
+                print("❌ Failed to decode timeline events: \(error.localizedDescription)")
+            }
+        }
+
+        // No saved events - build from legacy data
+        return buildTimelineEventsFromLegacyData(for: date)
+    }
+
+    /// Build timeline events from existing habits, meals, and workouts
+    ///
+    /// This provides migration from the old data model to the new timeline model.
+    /// Called when no saved timeline events exist for a date.
+    ///
+    /// - Parameter date: The date to build events for
+    /// - Returns: Array of timeline events sorted by timestamp
+    func buildTimelineEventsFromLegacyData(for date: Date) -> [TimelineEvent] {
+        var events: [TimelineEvent] = []
+        let calendar = Calendar.current
+
+        // Default timestamps for habits without time tracking
+        let morningTime = calendar.date(bySettingHour: 8, minute: 0, second: 0, of: date) ?? date
+        let eveningTime = calendar.date(bySettingHour: 22, minute: 0, second: 0, of: date) ?? date
+
+        // Convert meals to events
+        let mealTitles = ["Breakfast", "Lunch", "Dinner", "Pre-workout meal"]
+        for title in mealTitles {
+            if let meal = loadNutritionMeal(for: title, date: date) {
+                let defaultTime = Habit.defaultTime(for: title) ?? morningTime
+                let event = TimelineEvent.fromMeal(meal, defaultTimestamp: defaultTime)
+                events.append(event)
+            }
+        }
+
+        // Convert workouts to events
+        let workouts = loadWorkoutRecords(for: date)
+        for workout in workouts {
+            let event = TimelineEvent.fromWorkout(workout)
+            events.append(event)
+        }
+
+        // Convert habits to events (non-meal habits only)
+        if let habits = loadHabits(for: date) {
+            let nonMealHabits = habits.filter { habit in
+                !mealTitles.contains(habit.title) && habit.title != "Completed workout"
+            }
+
+            for habit in nonMealHabits {
+                // Use tracked time or assign default based on category
+                let defaultTime: Date
+                switch habit.categoryOrDefault {
+                case .sleep:
+                    defaultTime = eveningTime
+                case .tracking:
+                    defaultTime = morningTime
+                default:
+                    defaultTime = morningTime
+                }
+
+                let event = TimelineEvent.fromHabit(habit, defaultTimestamp: defaultTime)
+                events.append(event)
+            }
+        }
+
+        // Sort by timestamp
+        return events.sorted { $0.timestamp < $1.timestamp }
+    }
+
+    /// Generate storage key for timeline events
+    ///
+    /// Format: "timelineEvents_2026-01-21"
+    private func timelineEventsKey(for date: Date) -> String {
+        let dateKey = self.dateKey(from: date).replacingOccurrences(of: "habitData_", with: "")
+        return "timelineEvents_\(dateKey)"
+    }
+
+    /// Save a single timeline event (update or insert)
+    ///
+    /// - Parameters:
+    ///   - event: The event to save
+    ///   - date: The date this event belongs to
+    func saveTimelineEvent(_ event: TimelineEvent, for date: Date) {
+        var events = loadTimelineEvents(for: date)
+
+        // Update existing or append new
+        if let index = events.firstIndex(where: { $0.id == event.id }) {
+            events[index] = event
+        } else {
+            events.append(event)
+        }
+
+        saveTimelineEvents(events, for: date)
+        
+        // Sync habit events to Habit objects for WeeklyView compatibility
+        if event.type == .habit {
+            syncHabitEventToHabit(event, for: date)
+        }
+    }
+    
+    /// Sync a TimelineEvent habit to a Habit object for WeeklyView compatibility
+    private func syncHabitEventToHabit(_ event: TimelineEvent, for date: Date) {
+        guard let habitData = event.metadata.habitData else { return }
+        
+        // Load existing habits or create defaults
+        var habits = loadHabits(for: date) ?? HabitDefinitions.createDefaultHabits(customTimes: loadAllCustomTimes())
+        
+        // Find or create the habit
+        if let index = habits.firstIndex(where: { $0.title == event.title }) {
+            // Update existing habit
+            habits[index].isCompleted = habitData.isCompleted
+            habits[index].trackedTime = event.timestamp
+        } else {
+            // Create new habit
+            var newHabit = Habit(
+                title: event.title,
+                isCompleted: habitData.isCompleted,
+                category: habitData.category
+            )
+            newHabit.trackedTime = event.timestamp
+            habits.append(newHabit)
+        }
+        
+        // Save updated habits
+        saveHabits(habits, for: date)
+    }
+
+    /// Delete a timeline event
+    ///
+    /// - Parameters:
+    ///   - eventId: The ID of the event to delete
+    ///   - date: The date the event belongs to
+    func deleteTimelineEvent(id eventId: UUID, for date: Date) {
+        var events = loadTimelineEvents(for: date)
+        
+        // Find the event before deleting to sync habit deletion
+        if let eventToDelete = events.first(where: { $0.id == eventId }), eventToDelete.type == .habit {
+            // If it's a habit event, also remove it from Habit objects
+            var habits = loadHabits(for: date) ?? HabitDefinitions.createDefaultHabits(customTimes: loadAllCustomTimes())
+            habits.removeAll { $0.title == eventToDelete.title }
+            saveHabits(habits, for: date)
+        }
+        
+        events.removeAll { $0.id == eventId }
+        saveTimelineEvents(events, for: date)
+    }
+
+    /// Get total calories from timeline events for a date
+    func totalCaloriesFromTimeline(for date: Date) -> Double {
+        let events = loadTimelineEvents(for: date)
+        return events
+            .filter { $0.type == .meal }
+            .compactMap { $0.metadata.mealData?.macros?.calories }
+            .reduce(0, +)
+    }
+
+    /// Get total protein from timeline events for a date
+    func totalProteinFromTimeline(for date: Date) -> Double {
+        let events = loadTimelineEvents(for: date)
+        return events
+            .filter { $0.type == .meal }
+            .compactMap { $0.metadata.mealData?.macros?.protein }
+            .reduce(0, +)
+    }
 }

@@ -29,6 +29,8 @@ struct NutritionLogRow: View {
     @State private var urlInput: String = ""
     @State private var showAllMacros: Bool = false
     @State private var showingImagePicker: Bool = false
+    @State private var showURLInput: Bool = false
+    @State private var parsedMacros: MacroInfo?
 
     // Direct macro input state
     @State private var showMacroInput: Bool = false
@@ -52,9 +54,112 @@ struct NutritionLogRow: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(.primary)
             }
-            // Macro display or input section
-            if let macros = meal.extractedMacros, macros.hasAnyData {
-                // Show current macros with edit option
+            
+            // Primary Text Area (reordered to top priority)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Describe your meal or paste macros")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+
+                ZStack(alignment: .topLeading) {
+                    if textInput.isEmpty {
+                        Text("e.g., 450 kcal, 25g protein, 30g carbs, 15g fat")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.tertiary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                    }
+                    
+                    TextEditor(text: $textInput)
+                        .font(.system(size: 16))
+                        .foregroundStyle(.primary)
+                        .frame(minHeight: 120)
+                        .scrollContentBackground(.hidden)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.white.opacity(0.05))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(Theme.magenta.opacity(0.3), lineWidth: 1)
+                        )
+                        .focused($focusedField, equals: .text)
+                        .onChange(of: textInput) { oldValue, newValue in
+                            // Real-time macro parsing
+                            if let macros = MacroParser.extract(from: newValue) {
+                                parsedMacros = macros
+                                // Auto-update meal macros if text is the primary input
+                                if !newValue.isEmpty {
+                                    var updatedMeal = meal
+                                    updatedMeal.extractedMacros = macros
+                                    
+                                    // Sync text input to attachments (replace any existing text attachment from this input)
+                                    // Remove any text attachments that match the old value
+                                    updatedMeal.attachments.removeAll { attachment in
+                                        if case .text(let content) = attachment {
+                                            return content == oldValue || content == newValue
+                                        }
+                                        return false
+                                    }
+                                    
+                                    // Add new text as attachment if not empty
+                                    if !newValue.isEmpty {
+                                        updatedMeal.attachments.append(.text(newValue))
+                                    }
+                                    
+                                    // Re-extract macros from all attachments to ensure consistency
+                                    updateExtractedMacros(&updatedMeal)
+                                    meal = updatedMeal
+                                }
+                            } else {
+                                parsedMacros = nil
+                                // Still sync text to attachments even if no macros found
+                                if !newValue.isEmpty {
+                                    var updatedMeal = meal
+                                    // Remove old text attachment
+                                    updatedMeal.attachments.removeAll { attachment in
+                                        if case .text(let content) = attachment {
+                                            return content == oldValue
+                                        }
+                                        return false
+                                    }
+                                    // Add new text
+                                    updatedMeal.attachments.append(.text(newValue))
+                                    meal = updatedMeal
+                                }
+                            }
+                        }
+                }
+            }
+            
+            // Parsed Macros Display (when available from text input)
+            if let parsed = parsedMacros, parsed.hasAnyData {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Parsed macros")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            loadMacrosToInput()
+                            showMacroInput = true
+                        }) {
+                            Text("Edit")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Theme.violet)
+                        }
+                    }
+                    
+                    macroChipsFromMacros(parsed)
+                }
+            }
+            
+            // Existing Macros Display (from saved meal)
+            if let macros = meal.extractedMacros, macros.hasAnyData, parsedMacros == nil {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Macros")
@@ -79,7 +184,7 @@ struct NutritionLogRow: View {
                         macroChips(showAll: true)
                     }
                 }
-            } else {
+            } else if parsedMacros == nil && meal.extractedMacros == nil {
                 // No macros yet - show add button or input fields
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -112,61 +217,57 @@ struct NutritionLogRow: View {
                 }
             }
             
-            // Attachment Buttons
-            HStack(spacing: 12) {
+            // Compact Attachment Buttons
+            HStack(spacing: 8) {
                 attachmentButton(
                     icon: "photo",
-                    label: "Add Image",
+                    label: "Image",
+                    compact: true,
                     action: { showingImagePicker = true }
                 )
 
                 attachmentButton(
                     icon: "text.quote",
-                    label: "Add Text",
-                    action: { focusedField = .text }
+                    label: "Text",
+                    compact: true,
+                    action: { 
+                        focusedField = .text
+                    }
                 )
 
                 attachmentButton(
                     icon: "link",
-                    label: "Add URL",
-                    action: { focusedField = .url }
+                    label: "URL",
+                    compact: true,
+                    action: { 
+                        showURLInput.toggle()
+                        if showURLInput {
+                            focusedField = .url
+                        }
+                    }
                 )
             }
+            
+            // URL Input Field (progressive disclosure - only shown when Add URL is tapped)
+            if showURLInput {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("URL")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.secondary)
 
-            // Text Input Field
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Notes or recipe paste")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.secondary)
-
-                TextField("e.g., 450 kcal, 25g protein, 30g carbs, 15g fat", text: $textInput)
-                    .textFieldStyle(CustomTextFieldStyle(accentColor: Theme.magenta))
-                    .focused($focusedField, equals: .text)
-                    .onSubmit {
-                        if !textInput.isEmpty {
-                            addTextAttachment(textInput)
-                            textInput = ""
+                    TextField("Paste URL here", text: $urlInput)
+                        .textFieldStyle(CustomTextFieldStyle(accentColor: Theme.magenta))
+                        .autocapitalization(.none)
+                        .keyboardType(.URL)
+                        .focused($focusedField, equals: .url)
+                        .onSubmit {
+                            if !urlInput.isEmpty, let url = URL(string: urlInput) {
+                                addURLAttachment(url)
+                                urlInput = ""
+                                showURLInput = false
+                            }
                         }
-                    }
-            }
-
-            // URL Input Field
-            VStack(alignment: .leading, spacing: 6) {
-                Text("URL")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.secondary)
-
-                TextField("Paste URL here", text: $urlInput)
-                    .textFieldStyle(CustomTextFieldStyle(accentColor: Theme.magenta))
-                    .autocapitalization(.none)
-                    .keyboardType(.URL)
-                    .focused($focusedField, equals: .url)
-                    .onSubmit {
-                        if !urlInput.isEmpty, let url = URL(string: urlInput) {
-                            addURLAttachment(url)
-                            urlInput = ""
-                        }
-                    }
+                }
             }
 
             // Attachments List
@@ -186,21 +287,36 @@ struct NutritionLogRow: View {
                 }
             }
         }
+        .toolbar {
+            if focusedField == .text {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        focusedField = nil
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Content Views
 
-    private func attachmentButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
+    private func attachmentButton(icon: String, label: String, compact: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 6) {
+            HStack(spacing: compact ? 4 : 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .medium))
-                Text(label)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: compact ? 12 : 14, weight: .medium))
+                if !compact {
+                    Text(label)
+                        .font(.system(size: 14, weight: .medium))
+                } else {
+                    Text(label)
+                        .font(.system(size: 12, weight: .medium))
+                }
             }
             .foregroundColor(Theme.violet)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, compact ? 10 : 12)
+            .padding(.vertical, compact ? 6 : 8)
             .background(
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Theme.violet.opacity(0.15))
@@ -393,6 +509,26 @@ struct NutritionLogRow: View {
             }
         }
     }
+    
+    private func macroChipsFromMacros(_ macros: MacroInfo) -> some View {
+        HStack(spacing: 6) {
+            if let cal = macros.calories {
+                macroChip(value: cal, unit: "kcal", label: nil)
+            }
+
+            if let protein = macros.protein {
+                macroChip(value: protein, unit: "g", label: "p")
+            }
+
+            if let carbs = macros.carbs {
+                macroChip(value: carbs, unit: "g", label: "c")
+            }
+
+            if let fat = macros.fat {
+                macroChip(value: fat, unit: "g", label: "f")
+            }
+        }
+    }
 
     private func macroChip(value: Double, unit: String, label: String?) -> some View {
         HStack(spacing: 3) {
@@ -434,6 +570,7 @@ struct NutritionLogRow: View {
             meal = updatedMeal
         }
     }
+    
 
     private func addURLAttachment(_ url: URL) {
         withAnimation {

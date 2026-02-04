@@ -64,20 +64,50 @@ struct WeeklyView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
+                // Header with back button
+                HStack {
+                    Button(action: {
+                        let impact = UIImpactFeedbackGenerator(style: .light)
+                        impact.impactOccurred()
+                        onDateTapped(selectedDate)
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .padding(8)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                    }
+
+                    Spacer()
+
+                    Text("Weekly")
+                        .font(.headline)
+
+                    Spacer()
+
+                    // Spacer for symmetry
+                    Color.clear
+                        .frame(width: 32, height: 32)
+                }
+                .padding(.horizontal)
+                .padding(.top)
+
                 // Week navigation
                 HStack {
                     Button(action: {
                         selectedDate = selectedDate.addingDays(-7)
                     }) {
                         Image(systemName: "chevron.left")
-                            .font(.title2)
-                            .frame(width: 44, height: 44)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
                     }
 
                     Spacer()
 
                     Text(weekRangeText)
-                        .font(.headline)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
 
                     Spacer()
 
@@ -85,12 +115,12 @@ struct WeeklyView: View {
                         selectedDate = selectedDate.addingDays(7)
                     }) {
                         Image(systemName: "chevron.right")
-                            .font(.title2)
-                            .frame(width: 44, height: 44)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
                     }
                 }
-                .padding(.horizontal)
-                .padding(.top)
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
 
                 // TEMPORARILY REMOVED: Weekly Summary Card
                 // WeeklySummaryCard(
@@ -230,19 +260,23 @@ struct WeeklyView: View {
         // Toggle completion
         habits[index].isCompleted.toggle()
         let isNowCompleted = habits[index].isCompleted
+        let habit = habits[index]
 
         // If completing a time-tracked habit, show time picker
         if isNowCompleted && habits[index].needsTimeTracking {
             // Use existing time, or default time, or current time as fallback
-            let timeToUse = habits[index].trackedTime ?? 
-                           Habit.defaultTime(for: habitTitle) ?? 
+            let timeToUse = habits[index].trackedTime ??
+                           Habit.defaultTime(for: habitTitle) ??
                            Date()
             editingHabit = (habitTitle, date, timeToUse)
         }
 
-        // Save immediately
+        // Save to habits storage
         storage.saveHabits(habits, for: date)
         print("💾 Toggled \(habitTitle) on \(storage.dateKey(from: date)): \(isNowCompleted)")
+
+        // Also update timeline events
+        updateTimelineEvent(for: habit, on: date)
 
         // Update completion cache
         let dateKey = storage.dateKey(from: date)
@@ -253,6 +287,32 @@ struct WeeklyView: View {
             completionCache[habitTitle]?.insert(dateKey)
         } else {
             completionCache[habitTitle]?.remove(dateKey)
+        }
+    }
+
+    /// Update timeline event when habit is toggled
+    private func updateTimelineEvent(for habit: Habit, on date: Date) {
+        // Load existing timeline events
+        var events = storage.loadTimelineEvents(for: date)
+
+        // Find existing event for this habit
+        if let existingIndex = events.firstIndex(where: { $0.title == habit.title && $0.type == .habit }) {
+            // Update existing event
+            var updated = events[existingIndex]
+            updated.metadata = .habit(HabitEventData(
+                isCompleted: habit.isCompleted,
+                category: habit.categoryOrDefault
+            ))
+            events[existingIndex] = updated
+            storage.saveTimelineEvents(events, for: date)
+        } else if habit.isCompleted {
+            // Create new event only if completing
+            let calendar = Calendar.current
+            let morningTime = calendar.date(bySettingHour: 8, minute: 0, second: 0, of: date) ?? date
+            let defaultTime = habit.trackedTime ?? Habit.defaultTime(for: habit.title) ?? morningTime
+
+            let event = TimelineEvent.fromHabit(habit, defaultTimestamp: defaultTime)
+            storage.saveTimelineEvent(event, for: date)
         }
     }
 

@@ -22,6 +22,10 @@ struct HomeView: View {
     @State private var showAddMenu = false
     @State private var showSupportMenu = false
     
+    // API test
+    @State private var showApiTestAlert = false
+    @State private var apiTestMessage = ""
+    
     // Data
     @State private var totalCalories: Double = 0
     @State private var totalProtein: Double = 0
@@ -155,6 +159,11 @@ struct HomeView: View {
             // Pull to refresh
             loadData()
         }
+        .alert("OpenAI API Test", isPresented: $showApiTestAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(apiTestMessage)
+        }
     }
     
     private var emptyTimelineState: some View {
@@ -259,8 +268,23 @@ struct HomeView: View {
     }
     
     private func handleActionSelected(_ action: CoachingAction) {
+        if action.id == "test_api" {
+            runAPIConnectionTest()
+            return
+        }
         withAnimation {
             selectedAction = action
+        }
+    }
+    
+    private func runAPIConnectionTest() {
+        Task {
+            let status = GPTCoachService.shared.apiKeyStatus
+            let ok = await GPTCoachService.shared.testAPIConnection()
+            await MainActor.run {
+                apiTestMessage = status + "\n\n" + (ok ? "Connection successful." : "Connection failed.")
+                showApiTestAlert = true
+            }
         }
     }
     
@@ -290,7 +314,7 @@ struct HomeView: View {
         switch actionId {
         case "add_meal", "trained":
             return .add
-        case "sanity_check", "hungry", "close_loop":
+        case "sanity_check", "hungry", "close_loop", "test_api":
             return .support
         default:
             return .support

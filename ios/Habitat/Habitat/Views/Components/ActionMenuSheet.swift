@@ -35,7 +35,8 @@ struct ActionMenuSheet: View {
             return [
                 CoachingAction(id: "sanity_check", icon: "sparkles", label: "Insights"),
                 CoachingAction(id: "hungry", icon: "fork.knife", label: "I'm hungry"),
-                CoachingAction(id: "close_loop", icon: "moon.fill", label: "Wrap the day")
+                CoachingAction(id: "close_loop", icon: "moon.fill", label: "Wrap the day"),
+                CoachingAction(id: "test_api", icon: "antenna.radiowaves.left.and.right", label: "Test OpenAI connection")
             ]
         }
     }
