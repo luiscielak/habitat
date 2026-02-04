@@ -436,7 +436,39 @@ class HabitStorageManager {
         preferences.recordWorkout(intensity: intensity, workoutTypes: workoutTypes, duration: duration)
         saveWorkoutPreferences(preferences)
     }
-    
+
+    // MARK: - Nutrition Targets
+
+    private let nutritionTargetsKey = "nutritionTargets"
+
+    /// Save user nutrition targets
+    func saveNutritionTargets(_ targets: UserNutritionTargets) {
+        let encoder = JSONEncoder()
+
+        do {
+            let data = try encoder.encode(targets)
+            UserDefaults.standard.set(data, forKey: nutritionTargetsKey)
+        } catch {
+            print("Failed to save nutrition targets: \(error.localizedDescription)")
+        }
+    }
+
+    /// Load user nutrition targets (returns defaults if none saved)
+    func loadNutritionTargets() -> UserNutritionTargets {
+        guard let data = UserDefaults.standard.data(forKey: nutritionTargetsKey) else {
+            return UserNutritionTargets.default
+        }
+
+        let decoder = JSONDecoder()
+
+        do {
+            return try decoder.decode(UserNutritionTargets.self, from: data)
+        } catch {
+            print("Failed to load nutrition targets: \(error.localizedDescription)")
+            return UserNutritionTargets.default
+        }
+    }
+
     // MARK: - Workout Record Storage
     
     /// Save workout record for a specific date

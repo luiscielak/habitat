@@ -26,6 +26,7 @@ struct TimelineView: View {
     @State private var todayActivityIntensity: String? = nil
 
     @State private var showAddSheet = false
+    @State private var showSettings = false
     @State private var editingEvent: TimelineEvent?
     @State private var showKPIScale = false
 
@@ -60,26 +61,16 @@ struct TimelineView: View {
                             }
 
                             // Events for this day
-                            if dayData.events.isEmpty {
-                                // No events for this day - show subtle indicator
-                                Text("No entries")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 8)
-                            } else {
-                                ForEach(dayData.events) { event in
-                                    EventCard(
-                                        event: event,
-                                        onTap: {
-                                            selectedDate = dayData.date
-                                            editingEvent = event
-                                        }
-                                    )
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 4)
-                                }
+                            ForEach(dayData.events) { event in
+                                EventCard(
+                                    event: event,
+                                    onTap: {
+                                        selectedDate = dayData.date
+                                        editingEvent = event
+                                    }
+                                )
+                                .padding(.horizontal)
+                                .padding(.vertical, 4)
                             }
                         }
 
@@ -131,10 +122,15 @@ struct TimelineView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $showSettings, onDismiss: {
+            // Reload to reflect any target changes
+            loadTodayKPIs()
+        }) {
+            NutritionSettingsView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
         .onAppear {
-            #if DEBUG
-            seedTestData()
-            #endif
             loadInitialData()
         }
     }
@@ -229,6 +225,18 @@ struct TimelineView: View {
 
             Spacer()
 
+            // Settings button
+            Button(action: {
+                let impact = UIImpactFeedbackGenerator(style: .light)
+                impact.impactOccurred()
+                showSettings = true
+            }) {
+                Image(systemName: "gearshape")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Weekly view button
             Button(action: {
                 let impact = UIImpactFeedbackGenerator(style: .light)
                 impact.impactOccurred()
@@ -306,7 +314,12 @@ struct TimelineView: View {
                 .sorted { $0.timestamp > $1.timestamp }
 
             let dayData = DayData(date: date, events: enteredEvents)
-            newDays.append(dayData)
+
+            // Only show days that have data, except always show today
+            let isToday = calendar.isDateInToday(date)
+            if isToday || !enteredEvents.isEmpty {
+                newDays.append(dayData)
+            }
         }
 
         loadedDays.append(contentsOf: newDays)
@@ -395,78 +408,6 @@ struct TimelineView: View {
         storage.deleteTimelineEvent(id: event.id, for: selectedDate)
         loadInitialData()
     }
-
-    // MARK: - Debug
-
-    #if DEBUG
-    private func seedTestData() {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-
-        // Check if we already have meal data with macros for today
-        let existingEvents = storage.loadTimelineEvents(for: today)
-        let hasMealData = existingEvents.contains { $0.type == .meal && $0.metadata.mealData?.macros?.hasAnyData == true }
-        guard !hasMealData else { return }
-
-        // Create sample meals with macros
-        let breakfast = TimelineEvent(
-            type: .meal,
-            title: "Breakfast",
-            timestamp: calendar.date(bySettingHour: 8, minute: 30, second: 0, of: today)!,
-            metadata: .meal(MealEventData(
-                isCompleted: true,
-                macros: MacroInfo(calories: 450, protein: 35, carbs: 40, fat: 18)
-            ))
-        )
-
-        let lunch = TimelineEvent(
-            type: .meal,
-            title: "Lunch",
-            timestamp: calendar.date(bySettingHour: 12, minute: 30, second: 0, of: today)!,
-            metadata: .meal(MealEventData(
-                isCompleted: true,
-                macros: MacroInfo(calories: 650, protein: 45, carbs: 55, fat: 25)
-            ))
-        )
-
-        let snack = TimelineEvent(
-            type: .meal,
-            title: "Snack",
-            timestamp: calendar.date(bySettingHour: 15, minute: 0, second: 0, of: today)!,
-            metadata: .meal(MealEventData(
-                isCompleted: true,
-                macros: MacroInfo(calories: 200, protein: 20, carbs: 15, fat: 8)
-            ))
-        )
-
-        // Create activity
-        let workout = TimelineEvent(
-            type: .activity,
-            title: "Kettlebell",
-            timestamp: calendar.date(bySettingHour: 7, minute: 0, second: 0, of: today)!,
-            metadata: .activity(ActivityEventData(
-                intensity: "Hard",
-                workoutTypes: ["Kettlebell", "Strength"],
-                duration: 45
-            ))
-        )
-
-        // Create habits
-        let weighIn = TimelineEvent(
-            type: .habit,
-            title: "Weighed myself",
-            timestamp: calendar.date(bySettingHour: 6, minute: 45, second: 0, of: today)!,
-            metadata: .habit(HabitEventData(isCompleted: true, category: .tracking))
-        )
-
-        let events = [breakfast, lunch, snack, workout, weighIn]
-        for event in events {
-            storage.saveTimelineEvent(event, for: today)
-        }
-
-        print("✅ Seeded test data: \(events.count) events")
-    }
-    #endif
 }
 
 // MARK: - Preview
