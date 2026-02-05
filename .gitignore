@@ -128,3 +128,9 @@ Temporary Items
 *.tmp
 *.temp
 *.log
+
+# Node.js (backend)
+node_modules/
+dist/
+.env
+*.local

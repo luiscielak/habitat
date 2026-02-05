@@ -1,17 +1,15 @@
 import { z } from 'zod';
 
-// Request/Response types for the API
-
-export const MealTypeEnum = z.enum(['breakfast', 'lunch', 'dinner', 'snack']);
-export type MealType = z.infer<typeof MealTypeEnum>;
-
-export const AnalyzeMealRequest = z.object({
+// Request schema
+export const AnalyzeRequestSchema = z.object({
   text: z.string().min(1, 'Meal text is required'),
-  mealType: MealTypeEnum.optional(),
+  mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack']).optional(),
   timestamp: z.string().datetime().optional(),
 });
-export type AnalyzeMealRequest = z.infer<typeof AnalyzeMealRequest>;
 
+export type AnalyzeRequest = z.infer<typeof AnalyzeRequestSchema>;
+
+// Response types
 export interface Macros {
   calories: number;
   protein_g: number;
@@ -19,35 +17,44 @@ export interface Macros {
   fat_g: number;
 }
 
-export interface AnalyzeMealResponse {
+export interface IngredientBreakdown {
+  input: string;
+  food: string;
+  weight_g: number;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+}
+
+export interface AnalyzeResponse {
   normalizedText: string;
+  parsedIngredients?: string[];
+  breakdown: IngredientBreakdown[];
   macros: Macros;
+  totalWeight_g: number;
   source: string;
   confidence?: number;
   warnings: string[];
 }
 
-export interface ApiError {
-  code: string;
-  message: string;
-  details?: Record<string, unknown>;
+export interface ErrorResponse {
+  error: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  };
 }
 
-export interface ApiErrorResponse {
-  error: ApiError;
-}
-
-// Error codes matching the PRD
+// Error codes
 export const ErrorCodes = {
-  INPUT_TOO_VAGUE: 'INPUT_TOO_VAGUE',
   INPUT_EMPTY: 'INPUT_EMPTY',
+  INPUT_TOO_VAGUE: 'INPUT_TOO_VAGUE',
   PROVIDER_RATE_LIMIT: 'PROVIDER_RATE_LIMIT',
   PROVIDER_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
   PROVIDER_PARSE_FAILED: 'PROVIDER_PARSE_FAILED',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
 } as const;
-
-export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
 
 // Edamam API types
 export interface EdamamNutrient {
@@ -56,35 +63,39 @@ export interface EdamamNutrient {
   unit: string;
 }
 
+export interface EdamamParsedIngredient {
+  quantity: number;
+  measure: string;
+  food: string;
+  foodId: string;
+  weight: number;
+  nutrients: {
+    ENERC_KCAL?: EdamamNutrient; // Calories
+    PROCNT?: EdamamNutrient;     // Protein
+    FAT?: EdamamNutrient;        // Fat
+    CHOCDF?: EdamamNutrient;     // Carbs
+  };
+  status: string;
+}
+
+export interface EdamamIngredient {
+  text: string;
+  parsed?: EdamamParsedIngredient[];
+}
+
 export interface EdamamResponse {
-  uri?: string;
-  calories: number;
-  totalWeight: number;
+  uri: string;
   dietLabels: string[];
   healthLabels: string[];
   cautions: string[];
-  totalNutrients: {
-    ENERC_KCAL?: EdamamNutrient;
-    FAT?: EdamamNutrient;
-    FASAT?: EdamamNutrient;
-    CHOCDF?: EdamamNutrient;
-    FIBTG?: EdamamNutrient;
-    SUGAR?: EdamamNutrient;
+  ingredients: EdamamIngredient[];
+  // These exist in some API versions but not nutrition-data
+  calories?: number;
+  totalWeight?: number;
+  totalNutrients?: {
     PROCNT?: EdamamNutrient;
-    CHOLE?: EdamamNutrient;
-    NA?: EdamamNutrient;
-    [key: string]: EdamamNutrient | undefined;
+    FAT?: EdamamNutrient;
+    CHOCDF?: EdamamNutrient;
+    ENERC_KCAL?: EdamamNutrient;
   };
-  totalDaily: Record<string, EdamamNutrient>;
-  ingredients?: Array<{
-    text: string;
-    parsed?: Array<{
-      quantity: number;
-      measure: string;
-      food: string;
-      foodId: string;
-      weight: number;
-      nutrients: Record<string, EdamamNutrient>;
-    }>;
-  }>;
 }

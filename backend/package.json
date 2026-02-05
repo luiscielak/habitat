@@ -1,25 +1,22 @@
 {
   "name": "habitat-meal-api",
   "version": "0.1.0",
-  "description": "Backend API for Habitat meal macro extraction",
+  "description": "Meal macro extraction API for Habitat",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "start": "node dist/index.js"
   },
   "dependencies": {
-    "hono": "^4.6.0",
-    "@hono/node-server": "^1.13.0",
-    "zod": "^3.24.0"
+    "@hono/node-server": "^1.8.0",
+    "dotenv": "^17.2.3",
+    "hono": "^4.0.0",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
-  },
-  "engines": {
-    "node": ">=20.0.0"
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.3.0"
   }
 }

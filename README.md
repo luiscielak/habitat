@@ -106,6 +106,8 @@ Progressive input forms for personalized coaching:
 ```
 habitat/
 ├── ios/          # Native iOS app (SwiftUI)
+├── backend/      # Meal macro API (Node.js + Hono)
+├── web/          # Web POC for meal tracking
 ├── docs/         # Design briefs and documentation
 ├── prompts/      # Development prompts and specs
 └── design/       # Design assets and mockups
@@ -166,6 +168,85 @@ To install Habitat on your physical iPhone:
 The app will now appear on your iPhone's home screen and you can launch it normally!
 
 **Note**: Apps installed this way expire after 7 days (with a free Apple ID) or 1 year (with a paid developer account). You'll need to rebuild and reinstall when they expire.
+
+### Running the Meal Macro POC (Web)
+
+The web POC lets you test free-text meal entry and macro extraction before integrating into iOS.
+
+#### Requirements
+- Node.js 18+
+- Edamam API credentials (free tier available at https://developer.edamam.com/edamam-nutrition-api)
+
+#### Setup
+
+1. **Install dependencies**:
+   ```bash
+   cd backend
+   npm install
+   ```
+
+2. **Configure environment**:
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your Edamam credentials:
+   # EDAMAM_APP_ID=your_app_id
+   # EDAMAM_APP_KEY=your_app_key
+   ```
+
+3. **Start the server**:
+   ```bash
+   npm run dev
+   ```
+
+4. **Open the web UI**:
+   Open http://localhost:3000 in your browser
+
+#### Testing the Feature
+
+1. Select a meal type (optional): Breakfast, Lunch, Dinner, or Snack
+2. Type a meal description, e.g.: `2 eggs, sourdough toast with butter, latte`
+3. Click **Analyze** (or press Cmd+Enter)
+4. Review the macro breakdown
+5. Click **Save** to add to your timeline
+
+Daily totals update automatically as you save meals.
+
+#### Troubleshooting Edamam Responses
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| "Could not parse meal" | Input too vague | Add quantities and specifics (e.g., "sandwich" → "turkey sandwich on wheat bread with mayo") |
+| 429 Rate Limit | Too many requests | Wait a few minutes; free tier has limited calls/minute |
+| Missing nutrients | Uncommon food | Try common alternatives or be more specific |
+| Low confidence | Ambiguous input | Add portion sizes and preparation details |
+
+#### API Endpoint
+
+```
+POST /v1/meals/analyze
+Content-Type: application/json
+
+{
+  "text": "2 eggs, toast with butter",
+  "mealType": "breakfast"
+}
+```
+
+Response:
+```json
+{
+  "normalizedText": "2 eggs, toast with butter",
+  "macros": {
+    "calories": 350,
+    "protein_g": 18.5,
+    "carbs_g": 22.0,
+    "fat_g": 21.3
+  },
+  "source": "edamam",
+  "confidence": 0.85,
+  "warnings": []
+}
+```
 
 ## Roadmap
 

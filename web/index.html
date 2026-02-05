@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Habitat - Meal Tracker POC</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Habitat</h1>
+      <p class="subtitle">Meal Macro Tracker</p>
+    </header>
+
+    <!-- Daily Totals -->
+    <section class="daily-totals" id="dailyTotals">
+      <h2>Today's Totals</h2>
+      <div class="totals-grid">
+        <div class="total-item">
+          <span class="total-value" id="totalCalories">0</span>
+          <span class="total-label">kcal</span>
+        </div>
+        <div class="total-item">
+          <span class="total-value" id="totalProtein">0</span>
+          <span class="total-label">protein</span>
+        </div>
+        <div class="total-item">
+          <span class="total-value" id="totalCarbs">0</span>
+          <span class="total-label">carbs</span>
+        </div>
+        <div class="total-item">
+          <span class="total-value" id="totalFat">0</span>
+          <span class="total-label">fat</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Add Meal Form -->
+    <section class="add-meal">
+      <h2>Add Meal</h2>
+      
+      <div class="meal-type-selector">
+        <button class="meal-type-btn" data-type="breakfast">Breakfast</button>
+        <button class="meal-type-btn" data-type="lunch">Lunch</button>
+        <button class="meal-type-btn" data-type="dinner">Dinner</button>
+        <button class="meal-type-btn" data-type="snack">Snack</button>
+      </div>
+
+      <textarea 
+        id="mealInput" 
+        placeholder="Describe your meal...&#10;e.g., 2 eggs, sourdough toast with butter, latte"
+        rows="4"
+      ></textarea>
+
+      <div class="button-row">
+        <button id="analyzeBtn" class="primary-btn">Analyze</button>
+      </div>
+
+      <!-- Analysis Result -->
+      <div id="analysisResult" class="analysis-result hidden">
+        <h3>Macro Breakdown</h3>
+        <div class="macros-grid">
+          <div class="macro-item">
+            <span class="macro-value" id="resultCalories">-</span>
+            <span class="macro-label">kcal</span>
+          </div>
+          <div class="macro-item">
+            <span class="macro-value" id="resultProtein">-</span>
+            <span class="macro-label">protein</span>
+          </div>
+          <div class="macro-item">
+            <span class="macro-value" id="resultCarbs">-</span>
+            <span class="macro-label">carbs</span>
+          </div>
+          <div class="macro-item">
+            <span class="macro-value" id="resultFat">-</span>
+            <span class="macro-label">fat</span>
+          </div>
+        </div>
+        <div id="warnings" class="warnings"></div>
+        <div class="confidence-row">
+          <span>Confidence: </span>
+          <span id="resultConfidence">-</span>
+        </div>
+        <div class="button-row">
+          <button id="saveBtn" class="primary-btn">Save Meal</button>
+          <button id="discardBtn" class="secondary-btn">Discard</button>
+        </div>
+      </div>
+
+      <!-- Error Display -->
+      <div id="errorDisplay" class="error-display hidden">
+        <p id="errorMessage"></p>
+        <button id="retryBtn" class="secondary-btn">Retry</button>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loadingState" class="loading-state hidden">
+        <div class="spinner"></div>
+        <p>Analyzing meal...</p>
+      </div>
+    </section>
+
+    <!-- Timeline -->
+    <section class="timeline">
+      <h2>Today's Meals</h2>
+      <div id="mealTimeline" class="meal-list">
+        <p class="empty-state">No meals logged yet</p>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

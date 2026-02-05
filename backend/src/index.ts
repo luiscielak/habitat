@@ -1,70 +1,64 @@
-import { serve } from '@hono/node-server';
-import { serveStatic } from '@hono/node-server/serve-static';
+import 'dotenv/config';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
-import { AnalyzeMealRequest, ErrorCodes, type ApiErrorResponse } from './types.js';
+import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
+import { AnalyzeRequestSchema, ErrorCodes, type AnalyzeResponse, type ErrorResponse } from './types.js';
 import { EdamamClient, EdamamError } from './edamam.js';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { MealParserService, MealParserError } from './meal-parser.js';
 
-// Get directory path for serving static files
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const webDir = join(__dirname, '../../web');
-
-// Validate environment variables
+// Validate environment
 const EDAMAM_APP_ID = process.env.EDAMAM_APP_ID;
 const EDAMAM_APP_KEY = process.env.EDAMAM_APP_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
 if (!EDAMAM_APP_ID || !EDAMAM_APP_KEY) {
-  console.error('Error: EDAMAM_APP_ID and EDAMAM_APP_KEY environment variables are required');
-  console.error('Copy .env.example to .env and add your Edamam credentials');
+  console.error('Missing required environment variables: EDAMAM_APP_ID, EDAMAM_APP_KEY');
+  console.error('Copy .env.example to .env and fill in your Edamam credentials');
   process.exit(1);
 }
 
-// Initialize Edamam client
-const edamamClient = new EdamamClient({
+if (!OPENAI_API_KEY) {
+  console.warn('Warning: OPENAI_API_KEY not set. LLM meal parsing disabled, using raw input.');
+}
+
+const edamam = new EdamamClient({
   appId: EDAMAM_APP_ID,
   appKey: EDAMAM_APP_KEY,
 });
 
-// Create Hono app
+const mealParser = OPENAI_API_KEY 
+  ? new MealParserService({ apiKey: OPENAI_API_KEY })
+  : null;
+
 const app = new Hono();
 
-// Middleware
+// Enable CORS for local development
 app.use('*', cors());
 
-// Custom logger that doesn't log meal content (privacy)
-app.use('*', async (c, next) => {
-  const start = Date.now();
-  await next();
-  const duration = Date.now() - start;
-  // Log without request body to protect meal content privacy
-  console.log(`${c.req.method} ${c.req.path} - ${c.res.status} - ${duration}ms`);
-});
+// Serve static files from ../web
+app.use('/*', serveStatic({ root: '../web' }));
 
-// Health check endpoint
+// Health check
 app.get('/health', (c) => {
   return c.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Main meal analysis endpoint
+// Main analyze endpoint
 app.post('/v1/meals/analyze', async (c) => {
   const startTime = Date.now();
 
   try {
-    // Parse and validate request body
     const body = await c.req.json();
-    const parseResult = AnalyzeMealRequest.safeParse(body);
-
+    
+    // Validate request
+    const parseResult = AnalyzeRequestSchema.safeParse(body);
     if (!parseResult.success) {
-      const errorResponse: ApiErrorResponse = {
+      const errorResponse: ErrorResponse = {
         error: {
           code: ErrorCodes.INPUT_EMPTY,
-          message: 'Invalid request body',
-          details: { errors: parseResult.error.errors },
+          message: parseResult.error.errors[0]?.message || 'Invalid request',
         },
       };
       return c.json(errorResponse, 400);
@@ -72,58 +66,101 @@ app.post('/v1/meals/analyze', async (c) => {
 
     const { text, mealType, timestamp } = parseResult.data;
 
-    // Analyze meal with Edamam
-    const result = await edamamClient.analyzeMeal(text);
+    // Step 1: Parse meal with LLM (if available)
+    let ingredients: string[];
+    let usedLLM = false;
+    
+    if (mealParser) {
+      try {
+        const parsed = await mealParser.parse(text);
+        ingredients = parsed.ingredients;
+        usedLLM = true;
+        console.log(`[parse] LLM parsed "${text}" into ${ingredients.length} ingredients`);
+      } catch (parseError) {
+        // Fall back to raw input if LLM fails
+        console.warn(`[parse] LLM failed, using raw input:`, parseError);
+        ingredients = [text];
+      }
+    } else {
+      // No LLM configured, use raw input
+      ingredients = [text];
+    }
 
-    // Log latency (without meal content)
+    // Step 2: Get macros from Edamam for each ingredient
+    const result = await edamam.analyzeIngredients(ingredients);
+
+    const response: AnalyzeResponse = {
+      normalizedText: result.normalizedText,
+      parsedIngredients: usedLLM ? ingredients : undefined,
+      breakdown: result.breakdown,
+      macros: result.macros,
+      totalWeight_g: result.totalWeight_g,
+      source: usedLLM ? 'gpt+edamam' : 'edamam',
+      confidence: result.confidence,
+      warnings: result.warnings,
+    };
+
+    // Log metrics (no PII)
     const latency = Date.now() - startTime;
-    console.log(`Meal analysis completed in ${latency}ms`);
+    console.log(`[analyze] status=200 latency=${latency}ms confidence=${result.confidence} llm=${usedLLM}`);
 
-    return c.json(result, 200);
+    return c.json(response);
+
   } catch (error) {
-    // Handle known errors
-    if (error instanceof EdamamError) {
-      const statusMap: Record<string, number> = {
-        [ErrorCodes.INPUT_TOO_VAGUE]: 400,
-        [ErrorCodes.INPUT_EMPTY]: 400,
-        [ErrorCodes.PROVIDER_RATE_LIMIT]: 429,
-        [ErrorCodes.PROVIDER_UNAVAILABLE]: 503,
-        [ErrorCodes.PROVIDER_PARSE_FAILED]: 422,
-      };
+    const latency = Date.now() - startTime;
 
-      const errorResponse: ApiErrorResponse = {
+    if (error instanceof EdamamError) {
+      const status = getStatusForCode(error.code);
+      const errorResponse: ErrorResponse = {
         error: {
           code: error.code,
           message: error.message,
-          details: error.details,
         },
       };
-
-      return c.json(errorResponse, statusMap[error.code] || 500);
+      console.log(`[analyze] status=${status} error=${error.code} latency=${latency}ms`);
+      return c.json(errorResponse, status);
     }
 
-    // Handle unexpected errors
-    console.error('Unexpected error:', error instanceof Error ? error.message : 'Unknown error');
+    if (error instanceof MealParserError) {
+      const errorResponse: ErrorResponse = {
+        error: {
+          code: error.code,
+          message: error.message,
+        },
+      };
+      console.log(`[analyze] status=400 error=${error.code} latency=${latency}ms`);
+      return c.json(errorResponse, 400);
+    }
 
-    const errorResponse: ApiErrorResponse = {
+    // Unexpected error
+    console.error(`[analyze] status=500 error=INTERNAL_ERROR latency=${latency}ms`, error);
+    const errorResponse: ErrorResponse = {
       error: {
         code: ErrorCodes.INTERNAL_ERROR,
         message: 'An unexpected error occurred',
       },
     };
-
     return c.json(errorResponse, 500);
   }
 });
 
-// Serve static files from web directory
-app.use('/*', serveStatic({ root: webDir }));
+function getStatusForCode(code: string): 400 | 422 | 429 | 500 | 503 {
+  switch (code) {
+    case ErrorCodes.INPUT_EMPTY:
+    case ErrorCodes.INPUT_TOO_VAGUE:
+      return 400;
+    case ErrorCodes.PROVIDER_PARSE_FAILED:
+      return 422;
+    case ErrorCodes.PROVIDER_RATE_LIMIT:
+      return 429;
+    case ErrorCodes.PROVIDER_UNAVAILABLE:
+      return 503;
+    default:
+      return 500;
+  }
+}
 
-// Start server
-console.log(`Starting Habitat Meal API on port ${PORT}`);
-console.log(`Web UI available at http://localhost:${PORT}`);
-console.log(`API endpoint: POST http://localhost:${PORT}/v1/meals/analyze`);
-
+console.log(`Starting server on http://localhost:${PORT}`);
 serve({
   fetch: app.fetch,
   port: PORT,

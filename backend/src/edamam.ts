@@ -1,6 +1,6 @@
-import type { EdamamResponse, Macros, AnalyzeMealResponse } from './types.js';
-import { ErrorCodes } from './types.js';
+import type { EdamamResponse, Macros, IngredientBreakdown } from './types.js';
 
+// Use nutrition-data endpoint (GET with query param) - more forgiving than nutrition-details
 const EDAMAM_API_URL = 'https://api.edamam.com/api/nutrition-data';
 
 interface EdamamConfig {
@@ -16,206 +16,232 @@ export class EdamamClient {
   }
 
   /**
-   * Analyze meal text and return macro breakdown
+   * Split meal text into individual ingredients
    */
-  async analyzeMeal(mealText: string): Promise<AnalyzeMealResponse> {
-    const warnings: string[] = [];
-
-    // Split input into ingredients for better parsing
-    const ingredients = this.parseIngredients(mealText);
-
-    if (ingredients.length === 0) {
-      throw new EdamamError(
-        ErrorCodes.INPUT_EMPTY,
-        'No meal text provided',
-        { originalInput: mealText }
-      );
-    }
-
-    // Call Edamam API
-    const response = await this.callEdamamApi(mealText);
-
-    // Extract macros from response
-    const macros = this.extractMacros(response);
-
-    // Calculate confidence score
-    const confidence = this.calculateConfidence(response, ingredients, mealText);
-
-    // Add warnings for low confidence
-    if (confidence < 0.5) {
-      warnings.push('Low confidence in macro estimates. Consider adding more detail.');
-    }
-
-    if (response.totalWeight === 0) {
-      warnings.push('Could not determine portion weights. Estimates may be inaccurate.');
-    }
-
-    return {
-      normalizedText: mealText.trim(),
-      macros,
-      source: 'edamam',
-      confidence: Math.round(confidence * 100) / 100,
-      warnings,
-    };
-  }
-
-  /**
-   * Parse meal text into individual ingredients
-   */
-  private parseIngredients(mealText: string): string[] {
-    return mealText
+  private parseIngredients(text: string): string[] {
+    return text
       .split(/[,\n]+/)
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
   }
 
   /**
-   * Call Edamam Nutrition Analysis API
+   * Fetch nutrition data for a single ingredient
    */
-  private async callEdamamApi(mealText: string): Promise<EdamamResponse> {
+  private async fetchIngredient(ingredient: string): Promise<EdamamResponse | null> {
     const url = new URL(EDAMAM_API_URL);
     url.searchParams.set('app_id', this.config.appId);
     url.searchParams.set('app_key', this.config.appKey);
-    url.searchParams.set('ingr', mealText);
+    url.searchParams.set('ingr', ingredient);
     url.searchParams.set('nutrition-type', 'cooking');
 
-    let response: Response;
     try {
-      response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const response = await fetch(url.toString(), { method: 'GET' });
+
+      if (response.status === 429) {
+        throw new EdamamError('PROVIDER_RATE_LIMIT', 'Rate limit exceeded. Please try again later.');
+      }
+
+      if (!response.ok) {
+        console.warn(`Edamam could not parse: "${ingredient}" (${response.status})`);
+        return null;
+      }
+
+      return await response.json();
     } catch (error) {
-      throw new EdamamError(
-        ErrorCodes.PROVIDER_UNAVAILABLE,
-        'Could not connect to nutrition service',
-        { error: error instanceof Error ? error.message : 'Unknown error' }
-      );
+      if (error instanceof EdamamError) throw error;
+      console.warn(`Edamam fetch failed for: "${ingredient}"`, error);
+      return null;
     }
-
-    if (response.status === 429) {
-      throw new EdamamError(
-        ErrorCodes.PROVIDER_RATE_LIMIT,
-        'Rate limit exceeded. Please try again later.',
-        {}
-      );
-    }
-
-    if (response.status === 404 || response.status === 422) {
-      throw new EdamamError(
-        ErrorCodes.INPUT_TOO_VAGUE,
-        'Could not parse meal. Please provide more detail.',
-        {}
-      );
-    }
-
-    if (!response.ok) {
-      throw new EdamamError(
-        ErrorCodes.PROVIDER_UNAVAILABLE,
-        `Nutrition service returned error: ${response.status}`,
-        { status: response.status }
-      );
-    }
-
-    let data: EdamamResponse;
-    try {
-      data = await response.json() as EdamamResponse;
-    } catch {
-      throw new EdamamError(
-        ErrorCodes.PROVIDER_PARSE_FAILED,
-        'Failed to parse nutrition service response',
-        {}
-      );
-    }
-
-    // Check if we got meaningful data
-    if (data.calories === 0 && data.totalWeight === 0) {
-      throw new EdamamError(
-        ErrorCodes.INPUT_TOO_VAGUE,
-        'Could not parse meal. Please provide more specific ingredients and quantities.',
-        { originalInput: mealText }
-      );
-    }
-
-    return data;
   }
 
   /**
-   * Extract macros from Edamam response
-   * Following PRD rules: round to 1 decimal for grams, whole numbers for calories
-   * Missing nutrients return 0 (not null)
+   * Analyze pre-parsed ingredients (from LLM or manual parsing)
+   * Makes separate calls per ingredient and aggregates results
    */
-  private extractMacros(response: EdamamResponse): Macros {
-    const nutrients = response.totalNutrients;
+  async analyzeIngredients(ingredients: string[]): Promise<{
+    macros: Macros;
+    totalWeight_g: number;
+    normalizedText: string;
+    breakdown: IngredientBreakdown[];
+    confidence: number;
+    warnings: string[];
+  }> {
+    if (ingredients.length === 0) {
+      throw new EdamamError('INPUT_EMPTY', 'No ingredients provided');
+    }
+
+    // Fetch each ingredient in parallel
+    const results = await Promise.all(
+      ingredients.map(ing => this.fetchIngredient(ing))
+    );
+
+    // Aggregate all results
+    const aggregated = this.aggregateResults(results, ingredients);
+    
+    if (aggregated.parsedCount === 0) {
+      throw new EdamamError('INPUT_TOO_VAGUE', 'Could not parse meal. Try adding quantities like "2 eggs" or "1 cup rice".');
+    }
+    
+    return aggregated;
+  }
+
+  /**
+   * Analyze raw meal text (legacy method, parses by comma/newline)
+   * Consider using analyzeIngredients with LLM pre-parsing instead
+   */
+  async analyze(mealText: string): Promise<{
+    macros: Macros;
+    totalWeight_g: number;
+    normalizedText: string;
+    breakdown: IngredientBreakdown[];
+    confidence: number;
+    warnings: string[];
+  }> {
+    const trimmed = mealText.trim();
+    
+    if (!trimmed) {
+      throw new EdamamError('INPUT_EMPTY', 'No ingredients found in input');
+    }
+
+    const ingredients = this.parseIngredients(trimmed);
+    
+    if (ingredients.length === 0) {
+      throw new EdamamError('INPUT_EMPTY', 'No ingredients found in input');
+    }
+
+    return this.analyzeIngredients(ingredients);
+  }
+
+  /**
+   * Aggregate results from multiple ingredient calls
+   */
+  private aggregateResults(
+    results: (EdamamResponse | null)[],
+    originalIngredients: string[]
+  ): {
+    macros: Macros;
+    totalWeight_g: number;
+    normalizedText: string;
+    breakdown: IngredientBreakdown[];
+    confidence: number;
+    warnings: string[];
+    parsedCount: number;
+  } {
+    const warnings: string[] = [];
+    const breakdown: IngredientBreakdown[] = [];
+    let totalCalories = 0;
+    let totalProtein = 0;
+    let totalCarbs = 0;
+    let totalFat = 0;
+    let totalWeight = 0;
+    let parsedCount = 0;
+    const parsedFoods: string[] = [];
+    const failedIngredients: string[] = [];
+
+    results.forEach((data, index) => {
+      const originalText = originalIngredients[index];
+      
+      if (!data) {
+        failedIngredients.push(originalText);
+        // Add failed ingredient to breakdown with zeros
+        breakdown.push({
+          input: originalText,
+          food: originalText,
+          weight_g: 0,
+          calories: 0,
+          protein_g: 0,
+          carbs_g: 0,
+          fat_g: 0,
+        });
+        return;
+      }
+
+      // Extract from ingredients array
+      for (const ingredient of data.ingredients || []) {
+        if (ingredient.parsed) {
+          for (const parsed of ingredient.parsed) {
+            if (parsed.status === 'OK' && parsed.nutrients) {
+              const cal = Math.round(parsed.nutrients.ENERC_KCAL?.quantity || 0);
+              const prot = this.roundTo1Decimal(parsed.nutrients.PROCNT?.quantity || 0);
+              const carb = this.roundTo1Decimal(parsed.nutrients.CHOCDF?.quantity || 0);
+              const fat = this.roundTo1Decimal(parsed.nutrients.FAT?.quantity || 0);
+              const weight = Math.round(parsed.weight || 0);
+
+              // Add to breakdown
+              breakdown.push({
+                input: originalText,
+                food: parsed.food,
+                weight_g: weight,
+                calories: cal,
+                protein_g: prot,
+                carbs_g: carb,
+                fat_g: fat,
+              });
+
+              // Add to totals
+              totalCalories += cal;
+              totalProtein += prot;
+              totalCarbs += carb;
+              totalFat += fat;
+              totalWeight += weight;
+              parsedCount++;
+              parsedFoods.push(parsed.food);
+            }
+          }
+        }
+      }
+    });
+
+    if (failedIngredients.length > 0) {
+      warnings.push(`Could not parse: ${failedIngredients.join(', ')}`);
+    }
+
+    const calories = Math.round(totalCalories);
+    const protein_g = this.roundTo1Decimal(totalProtein);
+    const carbs_g = this.roundTo1Decimal(totalCarbs);
+    const fat_g = this.roundTo1Decimal(totalFat);
+    const totalWeight_g = Math.round(totalWeight);
+
+    // Calculate confidence
+    const successRate = parsedCount / originalIngredients.length;
+    let confidence = successRate;
+    
+    // Boost if we got all macros
+    const hasMacros = [calories > 0, protein_g > 0, carbs_g > 0, fat_g > 0].filter(Boolean).length;
+    confidence = confidence * (0.5 + (hasMacros / 8));
+    confidence = this.roundTo2Decimal(Math.min(1, confidence));
+
+    if (confidence < 0.5) {
+      warnings.push('Low confidence estimate - consider adding more detail');
+    }
 
     return {
-      calories: Math.round(response.calories ?? 0),
-      protein_g: Math.round((nutrients.PROCNT?.quantity ?? 0) * 10) / 10,
-      carbs_g: Math.round((nutrients.CHOCDF?.quantity ?? 0) * 10) / 10,
-      fat_g: Math.round((nutrients.FAT?.quantity ?? 0) * 10) / 10,
+      macros: { calories, protein_g, carbs_g, fat_g },
+      totalWeight_g,
+      normalizedText: parsedFoods.length > 0 ? parsedFoods.join(', ') : originalIngredients.join(', '),
+      breakdown,
+      confidence,
+      warnings,
+      parsedCount,
     };
   }
 
-  /**
-   * Calculate confidence score based on:
-   * - Presence of all 4 macros
-   * - Ratio of parsed ingredients to input tokens
-   * - Whether totalWeight > 0
-   */
-  private calculateConfidence(
-    response: EdamamResponse,
-    ingredients: string[],
-    mealText: string
-  ): number {
-    const nutrients = response.totalNutrients;
+  private roundTo1Decimal(n: number): number {
+    return Math.round(n * 10) / 10;
+  }
 
-    // Base score: how many macros are present
-    const macrosPresent = [
-      response.calories > 0,
-      (nutrients.PROCNT?.quantity ?? 0) > 0,
-      (nutrients.CHOCDF?.quantity ?? 0) > 0,
-      (nutrients.FAT?.quantity ?? 0) > 0,
-    ].filter(Boolean).length;
-
-    let baseScore: number;
-    switch (macrosPresent) {
-      case 4:
-        baseScore = 1.0;
-        break;
-      case 3:
-        baseScore = 0.7;
-        break;
-      case 2:
-        baseScore = 0.4;
-        break;
-      default:
-        baseScore = 0.2;
-    }
-
-    // Ingredient ratio: parsed ingredients vs input tokens
-    const inputTokens = mealText.split(/\s+/).length;
-    const ingredientRatio = Math.min(ingredients.length / Math.max(inputTokens / 3, 1), 1.0);
-
-    // Weight factor
-    const weightFactor = response.totalWeight > 0 ? 1.0 : 0.5;
-
-    return baseScore * ingredientRatio * weightFactor;
+  private roundTo2Decimal(n: number): number {
+    return Math.round(n * 100) / 100;
   }
 }
 
-/**
- * Custom error class for Edamam-related errors
- */
 export class EdamamError extends Error {
   code: string;
-  details: Record<string, unknown>;
 
-  constructor(code: string, message: string, details: Record<string, unknown>) {
+  constructor(code: string, message: string) {
     super(message);
-    this.name = 'EdamamError';
     this.code = code;
-    this.details = details;
+    this.name = 'EdamamError';
   }
 }
