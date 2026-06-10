@@ -119,7 +119,7 @@ habitat/
 - iOS 16+ device or simulator
 
 ### Getting Started
-1. Open `ios/Habitat.xcodeproj` in Xcode
+1. Open `ios/Habitat/Habitat.xcodeproj` in Xcode
 2. Select a simulator or connected device
 3. Press `Cmd+R` to build and run
 
@@ -131,7 +131,7 @@ To install Habitat on your physical iPhone:
 
 2. **Open the project** in Xcode:
    ```bash
-   open ios/Habitat.xcodeproj
+   open ios/Habitat/Habitat.xcodeproj
    ```
 
 3. **Configure signing**:
