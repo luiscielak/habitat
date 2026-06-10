@@ -495,7 +495,10 @@ class HabitStorageManager {
     /// - Parameter date: The date to load workouts for
     /// - Returns: Array of workout records, sorted by time
     func loadWorkoutRecords(for date: Date) -> [WorkoutRecord] {
-        let dateKey = dateKey(from: date)
+        // Must match the key produced by `workoutRecordKey(for:date:)`, which
+        // strips the "habitData_" prefix. Using the raw `dateKey` here meant the
+        // load prefix never matched the save key, so saved workouts were lost.
+        let dateKey = dateKey(from: date).replacingOccurrences(of: "habitData_", with: "")
         let prefix = "workoutRecord_\(dateKey)_"
         
         var records: [WorkoutRecord] = []
