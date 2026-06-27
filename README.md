@@ -106,10 +106,18 @@ Progressive input forms for personalized coaching:
 ```
 habitat/
 ├── ios/          # Native iOS app (SwiftUI)
+├── server/       # Coach proxy backend (Node/Express) that holds the OpenAI key
 ├── docs/         # Design briefs and documentation
 ├── prompts/      # Development prompts and specs
 └── design/       # Design assets and mockups
 ```
+
+### Coaching backend
+
+The GPT-powered coaching feature calls a small backend proxy (`server/`) rather
+than OpenAI directly, so the OpenAI API key is never shipped in the app binary.
+See [`server/README.md`](server/README.md) for running/deploying it and
+[`ios/Habitat/API_SETUP.md`](ios/Habitat/API_SETUP.md) for pointing the app at it.
 
 ## Development
 
