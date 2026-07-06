@@ -30,20 +30,37 @@ and `APP_SHARED_SECRET` there as server-side secrets.
 
 ## Step 2: Point the app at the proxy
 
-### Option A: Info.plist (recommended for production builds)
+### Option A: xcconfig (recommended — already wired up)
 
-1. In Xcode, select the **Habitat** target → **Info** tab.
-2. Click **+** and add:
-   - Key: `COACH_PROXY_URL`, Type: `String`, Value: `https://your-proxy-host`
-   - Key: `COACH_PROXY_TOKEN`, Type: `String`, Value: your shared secret (if the proxy requires auth)
+The project ships with build configuration files in `ios/Habitat/Config/`:
 
-The app reads these via `Bundle.main.object(forInfoDictionaryKey:)`.
+- `Debug.xcconfig` and `Release.xcconfig` are set as the target's base
+  configurations, so per-build overrides work out of the box.
+- Both include `Shared.xcconfig`, which injects `COACH_PROXY_URL` and
+  `COACH_PROXY_TOKEN` into the generated Info.plist.
+- Real values live in a git-ignored `Secrets.xcconfig`.
 
-> Tip: use separate values per build configuration (e.g. a staging proxy for
-> Debug, production for Release) by driving the Info.plist values from
-> `.xcconfig` build settings.
+Setup:
 
-### Option B: Environment variables (recommended for local development)
+```bash
+cd ios/Habitat/Config
+cp Secrets.example.xcconfig Secrets.xcconfig
+# then edit Secrets.xcconfig
+```
+
+> ⚠️ xcconfig treats `//` as the start of a comment, so a raw `https://host`
+> URL gets truncated. Use the `$(SLASH)` helper defined in `Shared.xcconfig`:
+>
+> ```
+> COACH_PROXY_URL = https:$(SLASH)$(SLASH)your-proxy-host.example.com
+> COACH_PROXY_TOKEN = your-shared-secret
+> ```
+
+The app reads these via `Bundle.main.object(forInfoDictionaryKey:)` at runtime.
+Use a staging proxy in `Debug` and production in `Release` by giving each its
+own values (e.g. split `Secrets.xcconfig` includes per configuration).
+
+### Option B: Environment variables (quickest for local development)
 
 1. In Xcode: **Product > Scheme > Edit Scheme... > Run > Arguments**.
 2. Under **Environment Variables**, add:

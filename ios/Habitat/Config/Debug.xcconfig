@@ -1,0 +1,11 @@
+// Debug.xcconfig
+// Base configuration for the Debug build. Point the app at a local or staging
+// proxy by setting COACH_PROXY_URL / COACH_PROXY_TOKEN in Secrets.xcconfig.
+
+#include "Shared.xcconfig"
+
+// NOTE: To hit a plaintext http://localhost proxy during development, iOS App
+// Transport Security must allow local networking. That requires an
+// NSAppTransportSecurity dictionary, which can't be expressed as a single
+// INFOPLIST_KEY_ value — add it in the target's Info settings (Debug only), or
+// tunnel the proxy over https (e.g. ngrok) and use the https URL instead.
