@@ -7,11 +7,15 @@
 
 import Foundation
 
-/// Service for calling OpenAI GPT API to get personalized coaching responses
+/// Service for fetching personalized coaching responses.
+///
+/// The OpenAI API key is **never** stored in the app. Instead the app talks to
+/// the Habitat coach proxy (see `server/`), which holds the key server-side,
+/// enforces model/token limits, and rate-limits requests.
 ///
 /// Handles:
 /// - Building context from user data (meals, habits, workouts)
-/// - Making API calls with system prompt
+/// - Sending the system prompt + context to the proxy
 /// - Parsing responses into DailyInsight
 /// - Error handling with fallback to mock responses
 class GPTCoachService {
@@ -23,45 +27,59 @@ class GPTCoachService {
     
     // MARK: - Configuration
     
-    /// OpenAI API endpoint
-    private let apiURL = "https://api.openai.com/v1/chat/completions"
+    /// Path appended to the proxy base URL for coaching requests.
+    private let coachPath = "/api/coach"
     
-    /// Model to use (gpt-4o-mini is cost-effective, gpt-4o for better quality)
-    private let model = "gpt-4o-mini"
+    /// Path appended to the proxy base URL for health checks.
+    private let healthPath = "/health"
     
-    /// Maximum tokens in response (keeps responses concise)
-    private let maxTokens = 300
-    
-    // MARK: - API Key
-    
-    /// Load API key from Info.plist or environment variable
+    /// Base URL of the Habitat coach proxy, without a trailing slash.
     ///
     /// Priority:
-    /// 1. OPENAI_API_KEY environment variable (for development)
-    /// 2. Info.plist OPENAI_API_KEY key
-    private var apiKey: String? {
-        // Check environment variable first (useful for development)
-        if let envKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"], !envKey.isEmpty {
-            return envKey
+    /// 1. `COACH_PROXY_URL` environment variable (useful for development)
+    /// 2. `COACH_PROXY_URL` key in Info.plist (set per build configuration)
+    private var proxyBaseURL: String? {
+        let raw: String?
+        if let envURL = ProcessInfo.processInfo.environment["COACH_PROXY_URL"], !envURL.isEmpty {
+            raw = envURL
+        } else {
+            raw = Bundle.main.object(forInfoDictionaryKey: "COACH_PROXY_URL") as? String
         }
         
-        // Check Info.plist
-        return Bundle.main.object(forInfoDictionaryKey: "OPENAI_API_KEY") as? String
+        guard let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+            return nil
+        }
+        // Normalize: strip a trailing slash so path concatenation is predictable.
+        return value.hasSuffix("/") ? String(value.dropLast()) : value
     }
     
-    /// Validate that API key is accessible (for debugging)
+    /// Optional shared secret sent as `Authorization: Bearer <token>`.
+    ///
+    /// Must match the proxy's `APP_SHARED_SECRET`. Optional so the proxy can be
+    /// run unauthenticated for local development.
+    private var proxyToken: String? {
+        if let envToken = ProcessInfo.processInfo.environment["COACH_PROXY_TOKEN"], !envToken.isEmpty {
+            return envToken
+        }
+        if let token = Bundle.main.object(forInfoDictionaryKey: "COACH_PROXY_TOKEN") as? String,
+           !token.isEmpty {
+            return token
+        }
+        return nil
+    }
+    
+    /// Whether the proxy URL is configured.
     var hasAPIKey: Bool {
-        return apiKey != nil
+        return proxyBaseURL != nil
     }
     
-    /// Get API key status (for debugging - returns masked version)
+    /// Human-readable configuration status (for the in-app connection test).
     var apiKeyStatus: String {
-        if let key = apiKey {
-            let prefix = String(key.prefix(10))
-            let suffix = String(key.suffix(4))
-            return "✅ API Key found: \(prefix)...\(suffix)"
+        if let url = proxyBaseURL {
+            let auth = proxyToken != nil ? " (authenticated)" : ""
+            return "✅ Coach proxy configured: \(url)\(auth)"
         } else {
-            return "❌ API Key not found"
+            return "❌ Coach proxy URL not set (COACH_PROXY_URL)"
         }
     }
     
@@ -79,22 +97,16 @@ class GPTCoachService {
         input: CoachingInput,
         date: Date
     ) async throws -> DailyInsight {
-        // Check API key
-        guard let apiKey = apiKey else {
-            throw GPTCoachError.missingAPIKey
-        }
-        
         // Build context from user data
         let context = buildContext(for: date, action: action, input: input)
         
         // Build user message
         let userMessage = buildUserMessage(for: action, input: input, context: context)
         
-        // Make API call
+        // Send to the coach proxy (which holds the OpenAI key)
         let response = try await makeAPICall(
             systemPrompt: GPTCoachInstructions.systemPrompt,
-            userMessage: userMessage,
-            apiKey: apiKey
+            userMessage: userMessage
         )
         
         // Parse response into DailyInsight
@@ -106,26 +118,28 @@ class GPTCoachService {
         )
     }
     
-    /// Test API connection with a simple request
+    /// Test connectivity to the coach proxy via its health endpoint.
     ///
-    /// - Returns: True if API call succeeds, false otherwise
+    /// - Returns: True if the proxy responds successfully, false otherwise
     func testAPIConnection() async -> Bool {
-        guard let apiKey = apiKey else {
-            print("❌ API Key not found")
+        guard let baseURL = proxyBaseURL, let url = URL(string: baseURL + healthPath) else {
+            print("❌ Coach proxy URL not configured")
             return false
         }
         
         do {
-            // Make a minimal test call
-            let testResponse = try await makeAPICall(
-                systemPrompt: "You are a helpful assistant.",
-                userMessage: "Say 'API test successful' if you can read this.",
-                apiKey: apiKey
-            )
-            print("✅ API Test Response: \(testResponse)")
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                print("❌ Proxy health check returned a non-success status")
+                return false
+            }
+            print("✅ Proxy health check succeeded")
             return true
         } catch {
-            print("❌ API Test Failed: \(error.localizedDescription)")
+            print("❌ Proxy health check failed: \(error.localizedDescription)")
             return false
         }
     }
@@ -261,40 +275,31 @@ class GPTCoachService {
     
     // MARK: - API Call
     
-    /// Make API call to OpenAI
+    /// Send a coaching request to the proxy and return the assistant reply.
     private func makeAPICall(
         systemPrompt: String,
-        userMessage: String,
-        apiKey: String
+        userMessage: String
     ) async throws -> String {
-        // Build request body
-        let requestBody: [String: Any] = [
-            "model": model,
-            "messages": [
-                [
-                    "role": "system",
-                    "content": systemPrompt
-                ],
-                [
-                    "role": "user",
-                    "content": userMessage
-                ]
-            ],
-            "max_tokens": maxTokens,
-            "temperature": 0.7 // Balanced creativity vs consistency
-        ]
-        
-        // Create URL request
-        guard let url = URL(string: apiURL) else {
+        guard let baseURL = proxyBaseURL else {
+            throw GPTCoachError.missingProxyURL
+        }
+        guard let url = URL(string: baseURL + coachPath) else {
             throw GPTCoachError.invalidURL
         }
         
+        // Build request body. The proxy enforces model/token limits server-side.
+        let requestBody: [String: Any] = [
+            "systemPrompt": systemPrompt,
+            "userMessage": userMessage
+        ]
+        
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = proxyToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         
-        // Encode request body
         guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
             throw GPTCoachError.encodingError
         }
@@ -309,21 +314,17 @@ class GPTCoachService {
         }
         
         guard (200...299).contains(httpResponse.statusCode) else {
-            // Try to parse error message
+            // The proxy returns errors as { "error": "message" }
             if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let error = errorData["error"] as? [String: Any],
-               let message = error["message"] as? String {
+               let message = errorData["error"] as? String {
                 throw GPTCoachError.apiError(message)
             }
             throw GPTCoachError.httpError(httpResponse.statusCode)
         }
         
-        // Parse response
+        // The proxy returns { "message": "..." }
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
-              let firstChoice = choices.first,
-              let message = firstChoice["message"] as? [String: Any],
-              let content = message["content"] as? String else {
+              let content = json["message"] as? String else {
             throw GPTCoachError.parsingError
         }
         
@@ -334,7 +335,7 @@ class GPTCoachService {
 // MARK: - Errors
 
 enum GPTCoachError: LocalizedError {
-    case missingAPIKey
+    case missingProxyURL
     case invalidURL
     case encodingError
     case invalidResponse
@@ -344,10 +345,10 @@ enum GPTCoachError: LocalizedError {
     
     var errorDescription: String? {
         switch self {
-        case .missingAPIKey:
-            return "OpenAI API key not found. Please add OPENAI_API_KEY to Info.plist or environment variables."
+        case .missingProxyURL:
+            return "Coach proxy URL not found. Please set COACH_PROXY_URL in Info.plist or environment variables."
         case .invalidURL:
-            return "Invalid API URL"
+            return "Invalid proxy URL"
         case .encodingError:
             return "Failed to encode request"
         case .invalidResponse:

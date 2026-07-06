@@ -1,0 +1,24 @@
+{
+  "name": "habitat-coach-proxy",
+  "version": "1.0.0",
+  "description": "Backend proxy that holds the OpenAI API key and serves the Habitat coaching endpoint.",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}

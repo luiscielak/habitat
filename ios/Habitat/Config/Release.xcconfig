@@ -1,0 +1,5 @@
+// Release.xcconfig
+// Base configuration for the Release build (App Store / TestFlight). Set the
+// production COACH_PROXY_URL / COACH_PROXY_TOKEN in Secrets.xcconfig.
+
+#include "Shared.xcconfig"

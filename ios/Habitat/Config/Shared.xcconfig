@@ -1,0 +1,20 @@
+// Shared.xcconfig
+// Build settings shared across all configurations.
+//
+// The coach proxy configuration is injected into the generated Info.plist so
+// that GPTCoachService can read it via Bundle.main. Values come from
+// Secrets.xcconfig (git-ignored) if present; otherwise they resolve to empty
+// and the app falls back to mock coaching responses.
+
+// Helper: xcconfig treats "//" as the start of a comment, which breaks URLs
+// like https://host. Reference $(SLASH) to embed literal slashes.
+SLASH = /
+
+// Optional local overrides / secrets. The "?" makes the include optional, so
+// builds succeed even when the file is absent (e.g. on CI or a fresh clone).
+#include? "Secrets.xcconfig"
+
+// Inject into the generated Info.plist. Any build setting prefixed with
+// INFOPLIST_KEY_ becomes an Info.plist key (the part after the prefix).
+INFOPLIST_KEY_COACH_PROXY_URL = $(COACH_PROXY_URL)
+INFOPLIST_KEY_COACH_PROXY_TOKEN = $(COACH_PROXY_TOKEN)

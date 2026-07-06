@@ -5,6 +5,9 @@
 ## User settings
 xcuserdata/
 
+## Local secrets (real values). The *.example.xcconfig templates are committed.
+Secrets.xcconfig
+
 ## Xcode 8 and earlier
 *.xcscmblueprint
 *.xccheckout
@@ -128,3 +131,9 @@ Temporary Items
 *.tmp
 *.temp
 *.log
+
+# Node backend (server/)
+node_modules/
+.env
+.env.local
+npm-debug.log*

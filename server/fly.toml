@@ -1,0 +1,34 @@
+# Fly.io configuration for the Habitat coach proxy.
+#
+# Deploy:
+#   fly launch --no-deploy         # first time, to create the app
+#   fly secrets set OPENAI_API_KEY=sk-... APP_SHARED_SECRET=$(openssl rand -hex 32)
+#   fly deploy
+#
+# Secrets are set with `fly secrets set` and are NEVER stored in this file.
+
+app = "habitat-coach-proxy"
+primary_region = "iad"
+
+[build]
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    method = "get"
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

@@ -1,85 +1,110 @@
-# OpenAI API Setup Guide
+# Coaching API Setup Guide
 
-This guide explains how to configure the OpenAI API key for the Habitat coaching system.
+The Habitat coaching feature is powered by OpenAI, but the app **never** stores
+the OpenAI key. Instead it talks to the **Habitat coach proxy** (see
+[`/server`](../../server/README.md)), a small backend that holds the key
+server-side, enforces model/token limits, and rate-limits requests.
 
-## Option 1: Info.plist (Recommended for Production)
+This is the secure, App Store–appropriate setup: secrets stay on your server,
+not in the shipped app binary.
 
-1. In Xcode, select your project in the navigator
-2. Select the **Habitat** target
-3. Go to the **Info** tab
-4. Click the **+** button to add a new key
-5. Add key: `OPENAI_API_KEY`
-6. Set value: Your OpenAI API key (starts with `sk-`)
+## Overview
 
-**Note:** If you don't see an Info.plist file, Xcode may be using the target's Info settings directly. The key will be accessible via `Bundle.main.object(forInfoDictionaryKey: "OPENAI_API_KEY")`.
-
-## Option 2: Environment Variable (Recommended for Development)
-
-For local development, you can set an environment variable:
-
-1. In Xcode, go to **Product > Scheme > Edit Scheme...**
-2. Select **Run** in the left sidebar
-3. Go to the **Arguments** tab
-4. Under **Environment Variables**, click **+**
-5. Add:
-   - Name: `OPENAI_API_KEY`
-   - Value: Your OpenAI API key
-
-Or set it in your terminal before running:
-```bash
-export OPENAI_API_KEY="sk-your-key-here"
+```
+iOS app  ──POST /api/coach──▶  coach proxy  ──▶  OpenAI
+(no key)                       (holds OPENAI_API_KEY)
 ```
 
-## Option 3: Create Info.plist File
+The app needs two pieces of configuration:
 
-If your project doesn't have an Info.plist file:
+| Key                  | Required | Description                                                        |
+| -------------------- | -------- | ------------------------------------------------------------------ |
+| `COACH_PROXY_URL`    | Yes      | Base URL of your deployed proxy, e.g. `https://habitat.example.com`. |
+| `COACH_PROXY_TOKEN`  | Optional | Shared secret matching the proxy's `APP_SHARED_SECRET`.            |
 
-1. Right-click on the **Habitat** folder in Xcode
-2. Select **New File...**
-3. Choose **Property List**
-4. Name it `Info.plist`
-5. Add a new entry:
-   - Key: `OPENAI_API_KEY`
-   - Type: `String`
-   - Value: Your API key
+## Step 1: Deploy the proxy
 
-## Getting Your API Key
+Follow [`/server/README.md`](../../server/README.md) to run the proxy locally or
+deploy it (Fly.io, Render, Railway, Cloud Run, etc.). You'll set `OPENAI_API_KEY`
+and `APP_SHARED_SECRET` there as server-side secrets.
 
-1. Go to https://platform.openai.com/api-keys
-2. Sign in or create an account
-3. Click **Create new secret key**
-4. Copy the key (it starts with `sk-`)
-5. **Important:** Save it securely - you won't be able to see it again!
+## Step 2: Point the app at the proxy
 
-## Security Notes
+### Option A: xcconfig (recommended — already wired up)
 
-- **Never commit your API key to git!**
-- Add `Info.plist` to `.gitignore` if it contains your key
-- Use environment variables for local development
-- For production, use secure key management (e.g., Keychain, environment variables in CI/CD)
+The project ships with build configuration files in `ios/Habitat/Config/`:
 
-## Testing
+- `Debug.xcconfig` and `Release.xcconfig` are set as the target's base
+  configurations, so per-build overrides work out of the box.
+- Both include `Shared.xcconfig`, which injects `COACH_PROXY_URL` and
+  `COACH_PROXY_TOKEN` into the generated Info.plist.
+- Real values live in a git-ignored `Secrets.xcconfig`.
 
-After setting up your API key:
+Setup:
 
-1. Build and run the app
-2. Go to the **Home** tab
-3. Tap any coaching action (e.g., "Show my meals so far")
-4. Fill out the form and submit
-5. You should see a GPT-generated response instead of a mock response
+```bash
+cd ios/Habitat/Config
+cp Secrets.example.xcconfig Secrets.xcconfig
+# then edit Secrets.xcconfig
+```
 
-If you see mock responses, check:
-- API key is correctly set
-- You have internet connectivity
-- Check Xcode console for error messages
+> ⚠️ xcconfig treats `//` as the start of a comment, so a raw `https://host`
+> URL gets truncated. Use the `$(SLASH)` helper defined in `Shared.xcconfig`:
+>
+> ```
+> COACH_PROXY_URL = https:$(SLASH)$(SLASH)your-proxy-host.example.com
+> COACH_PROXY_TOKEN = your-shared-secret
+> ```
 
-## Fallback Behavior
+The app reads these via `Bundle.main.object(forInfoDictionaryKey:)` at runtime.
+Use a staging proxy in `Debug` and production in `Release` by giving each its
+own values (e.g. split `Secrets.xcconfig` includes per configuration).
 
-If the API call fails for any reason (missing key, network error, API error), the app will automatically fall back to mock responses. This ensures the app continues to work even if the API is unavailable.
+### Option B: Environment variables (quickest for local development)
 
-## Cost Considerations
+1. In Xcode: **Product > Scheme > Edit Scheme... > Run > Arguments**.
+2. Under **Environment Variables**, add:
+   - `COACH_PROXY_URL` → `http://localhost:8080`
+   - `COACH_PROXY_TOKEN` → your shared secret (optional)
 
-- The app uses `gpt-4o-mini` model (cost-effective)
-- Max tokens per response: 300 (keeps responses concise)
-- Each coaching action = 1 API call
-- Monitor your usage at https://platform.openai.com/usage
+The environment variable takes priority over Info.plist.
+
+## Step 3: Test the connection
+
+1. Build and run the app.
+2. On the **Home** tab, trigger the API connection test action.
+3. You should see the proxy URL and a "health check succeeded" message.
+4. Trigger a coaching action — you should get a real GPT response instead of a
+   mock.
+
+## Local development & App Transport Security (ATS)
+
+iOS blocks plaintext HTTP by default. For production, always use **HTTPS** (every
+recommended host provides it). For local testing against `http://localhost:8080`,
+either:
+
+- Run the proxy over HTTPS (e.g. via a tunnel such as ngrok/Cloudflare Tunnel and
+  use the `https://` URL), **or**
+- Add an ATS exception for local networking to the target's Info settings:
+  - `NSAppTransportSecurity` → `NSAllowsLocalNetworking = YES` (Debug only).
+
+## Fallback behavior
+
+If the proxy URL is missing, the network call fails, or the proxy returns an
+error, the app automatically falls back to mock coaching responses, so it keeps
+working even when the backend is unavailable.
+
+## Security notes
+
+- **Never** commit `OPENAI_API_KEY` to git or embed it in the app — it lives only
+  in the proxy's server-side environment.
+- Set a strong `APP_SHARED_SECRET` (`openssl rand -hex 32`) so only your app can
+  call the proxy.
+- The proxy enforces the model (`gpt-4o-mini`), `max_tokens`, and per-IP rate
+  limits, so a leaked app token can't run up unbounded cost.
+
+## Cost considerations
+
+- Default model: `gpt-4o-mini` (cost-effective), configured server-side.
+- Max tokens per response: 300 (server-enforced).
+- Monitor usage at https://platform.openai.com/usage.
