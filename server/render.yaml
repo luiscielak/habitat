@@ -1,0 +1,25 @@
+# Render Blueprint for the Habitat coach proxy.
+# https://render.com/docs/blueprint-spec
+#
+# In the Render dashboard, create a new Blueprint from this repo (root
+# directory: server/). Then set OPENAI_API_KEY and APP_SHARED_SECRET as
+# environment variables — they are marked `sync: false` so they are never
+# stored in this file.
+
+services:
+  - type: web
+    name: habitat-coach-proxy
+    runtime: docker
+    rootDir: server
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: APP_SHARED_SECRET
+        sync: false
+      - key: PORT
+        value: "8080"

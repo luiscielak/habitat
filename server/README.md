@@ -93,7 +93,10 @@ real OpenAI key or network access.
 ## Deploying
 
 The service is a stateless container — deploy it anywhere that runs Node 18+ or
-Docker (Fly.io, Render, Railway, Google Cloud Run, AWS App Runner, etc.).
+Docker (Fly.io, Render, Railway, Google Cloud Run, AWS App Runner, etc.). A
+`.dockerignore` keeps the build context lean.
+
+### Docker (any host)
 
 ```bash
 docker build -t habitat-coach-proxy .
@@ -103,6 +106,24 @@ docker run -p 8080:8080 \
   habitat-coach-proxy
 ```
 
-Set `OPENAI_API_KEY` and `APP_SHARED_SECRET` as secrets in your hosting
-provider's dashboard. Then point the iOS app at the deployed URL (see
-`ios/Habitat/API_SETUP.md`).
+### Fly.io (`fly.toml` included)
+
+```bash
+fly launch --no-deploy
+fly secrets set OPENAI_API_KEY=sk-... APP_SHARED_SECRET=$(openssl rand -hex 32)
+fly deploy
+```
+
+The included `fly.toml` binds port 8080, forces HTTPS, and health-checks
+`/health`.
+
+### Render (`render.yaml` blueprint included)
+
+Create a new Blueprint from this repo, then set `OPENAI_API_KEY` and
+`APP_SHARED_SECRET` in the dashboard (they're marked `sync: false`).
+
+---
+
+Whichever host you use, set `OPENAI_API_KEY` and `APP_SHARED_SECRET` as secrets
+in the provider's dashboard/CLI — never in these files. Then point the iOS app
+at the deployed HTTPS URL (see `ios/Habitat/API_SETUP.md`).
